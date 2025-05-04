@@ -3,6 +3,7 @@
 #include "image.h"
 #include "list.h"
 #include "tree.h"
+#include "min-heap.h"
 
 int main() {
   char* inputFilePath = "./256x256.bmp";
