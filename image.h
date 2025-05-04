@@ -25,3 +25,13 @@ typedef struct {
   unsigned char G;
   unsigned char B;      
 } Pixel;
+
+void leituraHeader(FILE *F, BMPFILEHEADER *H);
+
+void leituraInfoHeader(FILE *F, BMPINFOHEADER *H);
+
+void printFileHeader(BMPFILEHEADER *header);
+
+void printInfoHeader(BMPINFOHEADER *header);
+
+void loadBMPImage(FILE *input, BMPINFOHEADER InfoHeader, Pixel *Image);
