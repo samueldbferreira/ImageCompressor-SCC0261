@@ -3,7 +3,7 @@
 
 #include "list.h"
 
-#define TABLE_SIZE 100
+#define TABLE_SIZE 1031
 
 typedef struct HashTable {
   List_t** items;
