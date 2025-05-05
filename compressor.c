@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "image.h"
-#include "list.h"
-#include "tree.h"
 #include "min-heap.h"
+#include "table.h"
 
 int main() {
   char* inputFilePath = "./256x256.bmp";
@@ -55,6 +54,33 @@ int main() {
 
   fclose(inputBmpFile);
   fclose(bmpOutputFile);
+
+  HashTable_t *table = createTable();
+
+  for (int i = 0; i < 7; i ++) {
+    tableInsert(table, 0);
+  }
+  for (int i = 0; i < 12; i ++) {
+    tableInsert(table, 1);
+  }
+  for (int i = 0; i < 15; i ++) {
+    tableInsert(table, 2);
+  }
+  for (int i = 0; i < 18; i ++) {
+    tableInsert(table, 3);
+  }
+  for (int i = 0; i < 20; i ++) {
+    tableInsert(table, 4);
+  }
+
+  List_t *tableItems = getItems(table);
+
+  Tree_t *finalTree = createTreeFromList(tableItems);
+  printTree(finalTree);
+
+  destroyTable(table);
+  destroyList(tableItems);
+  destroyTree(finalTree);
 
   return 0;
 }

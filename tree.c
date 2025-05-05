@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "table.h"
+#include "list.h"
 #include "tree.h"
+#include "min-heap.h"
 
 Tree_t* createTree(int difference, int frequence) {
   Tree_t* tree = (Tree_t*) malloc(sizeof(Tree_t));
@@ -12,6 +15,33 @@ Tree_t* createTree(int difference, int frequence) {
   root->childRight = NULL;
 
   tree->root = root;
+
+  return tree;
+}
+
+Tree_t* createTreeFromList(List_t* list) {
+  if (list == NULL) {
+    printf("Invalid list (NULL) at createTreeFromList.\n");
+    return NULL;
+  }
+
+  MinHeap_t* heap = createHeap();
+
+  ListNode_t *aux = list->first;
+  while (aux != NULL) {
+    Tree_t *treeAux = createTree(aux->difference, aux->frequence);
+    heapInsert(heap, treeAux);
+    aux = aux->next;
+  }
+
+  while (heapSize(heap) > 1) {
+    Tree_t* smallest = extractMin(heap);
+    Tree_t* secondSmallest = extractMin(heap);
+    Tree_t* merged = mergeTrees(smallest, secondSmallest);
+    heapInsert(heap, merged);
+  }
+
+  Tree_t *tree = extractMin(heap);
 
   return tree;
 }

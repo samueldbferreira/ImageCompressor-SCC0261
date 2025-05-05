@@ -1,6 +1,10 @@
 #ifndef TREE_H 
 #define TREE_H
 
+#include "list.h"
+
+#define EMPTY_DIFFERENCE 999;
+
 typedef struct TreeNode {
   int difference;
   int frequence;
@@ -12,9 +16,9 @@ typedef struct Tree {
   TreeNode_t* root;
 } Tree_t;
 
-#define EMPTY_DIFFERENCE 999;
-
 Tree_t* createTree(int difference, int frequence);
+
+Tree_t* createTreeFromList(List_t* list);
 
 Tree_t* mergeTrees(Tree_t* a, Tree_t* b);
 
