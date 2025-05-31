@@ -4,6 +4,7 @@
 #include "min-heap.h"
 #include "table.h"
 #include "channels.h"
+#include "block.h"
 
 int main() {
   char* inputFilePath = "./256x256.bmp";
@@ -23,6 +24,10 @@ int main() {
   loadBMPImage(inputBmpFile, infoHeader, Image);
                   
   Channels_t* channels = createChannels(Image, infoHeader.biWidth, infoHeader.biHeight);
+
+  Blocks_t* YBlocks = createBlocks(getY(channels), infoHeader.biWidth, infoHeader.biHeight);
+  Blocks_t* CbBlocks = createBlocks(getCb(channels), infoHeader.biWidth, infoHeader.biHeight);
+  Blocks_t* CrBlocks = createBlocks(getCr(channels), infoHeader.biWidth, infoHeader.biHeight);
 
   char* outputFilePath = "./output.bmp";
   FILE* bmpOutputFile = fopen(outputFilePath, "wb");
@@ -46,6 +51,9 @@ int main() {
   fclose(inputBmpFile);
   fclose(bmpOutputFile);
 
+  destroyBlocks(YBlocks, infoHeader.biWidth, infoHeader.biHeight);
+  destroyBlocks(CbBlocks, infoHeader.biWidth, infoHeader.biHeight);
+  destroyBlocks(CrBlocks, infoHeader.biWidth, infoHeader.biHeight);
   destroyChannels(channels);
 
   return 0;
