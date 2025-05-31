@@ -1,3 +1,6 @@
+#ifndef IMAGE_H 
+#define IMAGE_H
+
 typedef struct {
   unsigned short bfType;
   unsigned int bfSize;
@@ -35,3 +38,5 @@ void printFileHeader(BMPFILEHEADER *header);
 void printInfoHeader(BMPINFOHEADER *header);
 
 void loadBMPImage(FILE *input, BMPINFOHEADER InfoHeader, Pixel *Image);
+
+#endif
