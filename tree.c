@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "table.h"
 #include "list.h"
 #include "tree.h"
 #include "min-heap.h"
+#include "codes-table.h"
 
 Tree_t* createTree(int difference, int frequence) {
   Tree_t* tree = (Tree_t*) malloc(sizeof(Tree_t));
@@ -67,6 +69,57 @@ void printTree(Tree_t* tree) {
   }
 
   printTreeUtil(tree->root);
+}
+
+void generateCodesTableUtil(TreeNode_t* root, char* code, int index, CodesTable_t* table) {
+  if (root == NULL) {
+    return;
+  }
+
+  if (root->childLeft == NULL && root->childRight == NULL) {
+    code[index] = '\0';
+    SymbolCode_t *item = tableCodesSearch(table, root->difference);
+    if (item == NULL) {
+      printf("Error: SymbolCode not found for difference %d\n", root->difference);
+      return;
+    }
+    
+    item->code = (char*)malloc(index * sizeof(char));
+    if (item->code == NULL) {
+      printf("Memory allocation failed for code.");
+      return;
+    }
+    strncpy(item->code, code, index);
+
+    item->code = strdup(code);
+    item->codeSize = index;
+
+    return;
+  }
+
+  code[index] = '0';
+  generateCodesTableUtil(root->childLeft, code, index + 1, table);
+
+  code[index] = '1';
+  generateCodesTableUtil(root->childRight, code, index + 1, table);
+}
+
+CodesTable_t* generateCodesTable(HashTable_t* frequencesTable) {
+  List_t *items = getItems(frequencesTable);
+
+  Tree_t *tree = createTreeFromList(items);
+
+  CodesTable_t *codesTable = createCodesTable();
+  
+  ListNode_t *aux = items->first;
+  while (aux != NULL) {
+    tableCodesInsert(codesTable, aux->difference);
+    aux = aux->next;
+  }
+
+  generateCodesTableUtil(tree->root, (char*) malloc(100 * sizeof(char)), 0, codesTable);
+
+  return codesTable;
 }
 
 void destroyTreeUtil(TreeNode_t* root) {
