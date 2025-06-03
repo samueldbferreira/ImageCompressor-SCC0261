@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include "tree.h"
+#include "image.h"
 
 typedef struct BitWriter {
   FILE *file;
@@ -18,6 +19,6 @@ void flushBits(BitWriter *writer);
 
 void writeHuffmanTree(BitWriter *writer, TreeNode_t *node);
 
-void writeBinaryFile(int width, int height, int numSymbols, Tree_t *tree);
+void writeBinaryFile(int width, int height, int numSymbols, Tree_t *tree, Pixel *differences, CodesTable_t* codesTable);
 
 #endif

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "file-writer.h"
+#include "image.h"
 
 void initBitWriter(BitWriter *writer, FILE *file) {
   writer->file = file;
@@ -54,7 +55,13 @@ void writeHuffmanTree(BitWriter *writer, TreeNode_t *node) {
   }
 }
 
-void writeBinaryFile(int width, int height, int numSymbols, Tree_t *tree) { 
+void writeIntAsBits(BitWriter* writer, int value) {
+  for (int i = 0; i < 32; i++) {
+    writeBit(writer, (value >> (31 - i)) & 1);
+  }
+}
+
+void writeBinaryFile(int width, int height, int numSymbols, Tree_t *tree, Pixel *differences, CodesTable_t* codesTable) { 
   FILE* file = fopen("./output.bin", "wb");
   if (!file) {
     printf("Error opening output file.\n");
@@ -64,12 +71,36 @@ void writeBinaryFile(int width, int height, int numSymbols, Tree_t *tree) {
   fwrite(&height, sizeof(int), 1, file);
   fwrite(&width, sizeof(int), 1, file);
   fwrite(&numSymbols, sizeof(int), 1, file);
-  fflush(file);
 
   BitWriter writer;
   initBitWriter(&writer, file);
   writeHuffmanTree(&writer, tree->root);
-  flushBits(&writer);
 
+  // printf("First pixel writed: B: %d, G: %d, R: %d\n", differences[0].B, differences[0].G, differences[0].R);
+  writeIntAsBits(&writer, differences[0].B);
+  writeIntAsBits(&writer, differences[0].G);
+  writeIntAsBits(&writer, differences[0].R);
+
+  for (int i = 1; i < 10; i++) {
+    SymbolCode_t* B = tableCodesSearch(codesTable, differences[i].B);
+    // printf("Writing code for B [%d]: %s\n", B->difference, B->code);
+    for (int j = 0; j < B->codeSize; j++) {
+      writeBit(&writer, B->code[j] - '0');
+    }
+
+    SymbolCode_t* G = tableCodesSearch(codesTable, differences[i].G);
+    // printf("Writing code for G [%d]: %s\n", G->difference, G->code);
+    for (int j = 0; j < G->codeSize; j++) {
+      writeBit(&writer, G->code[j] - '0');
+    }
+
+    SymbolCode_t* R = tableCodesSearch(codesTable, differences[i].R);
+    // printf("Writing code for R [%d]: %s\n\n", R->difference, R->code);
+    for (int j = 0; j < R->codeSize; j++) {
+      writeBit(&writer, R->code[j] - '0');
+    }
+  }
+
+  flushBits(&writer);
   fclose(file);
 }

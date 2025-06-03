@@ -1,3 +1,7 @@
+#ifndef IMAGE_H 
+#define IMAGE_H
+
+#pragma pack(push, 1)
 typedef struct {
   unsigned short bfType;
   unsigned int bfSize;
@@ -21,9 +25,9 @@ typedef struct {
 } BMPINFOHEADER;
 
 typedef struct {
-  unsigned char R;
-  unsigned char G;
-  unsigned char B;      
+  int R;
+  int G;
+  int B;      
 } Pixel;
 
 void leituraHeader(FILE *F, BMPFILEHEADER *H);
@@ -35,3 +39,5 @@ void printFileHeader(BMPFILEHEADER *header);
 void printInfoHeader(BMPINFOHEADER *header);
 
 void loadBMPImage(FILE *input, BMPINFOHEADER InfoHeader, Pixel *Image);
+
+#endif
