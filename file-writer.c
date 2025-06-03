@@ -42,11 +42,6 @@ void writeHuffmanTree(BitWriter *writer, TreeNode_t *node) {
     for (int i = 31; i >= 0; i--) {
       writeBit(writer, (node->difference >> i) & 1);
     }
-
-    // Escreve a frequência (32 bits)
-    for (int i = 31; i >= 0; i--) {
-      writeBit(writer, (node->frequence >> i) & 1);
-    }
   } else {
     writeBit(writer, 0); // Marca como nó interno
     // Escreve a diferença (32 bits)
@@ -54,10 +49,6 @@ void writeHuffmanTree(BitWriter *writer, TreeNode_t *node) {
       writeBit(writer, (node->difference >> i) & 1);
     }
 
-    // Escreve a frequência (32 bits)
-    for (int i = 31; i >= 0; i--) {
-      writeBit(writer, (node->frequence >> i) & 1);
-    }
     writeHuffmanTree(writer, node->childLeft);
     writeHuffmanTree(writer, node->childRight);
   }

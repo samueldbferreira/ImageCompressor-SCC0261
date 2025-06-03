@@ -41,16 +41,7 @@ TreeNode_t* readHuffmanTree(BitReader *reader) {
       };
       node->difference = (node->difference << 1) | bit;
     }
-
     node->frequence = 0;
-    for (int i = 0; i < 32; i++) {
-      bit = readBit(reader);
-      if (bit == -1) {
-        free(node);
-        return NULL;
-      };
-      node->frequence = (node->frequence << 1) | bit;
-    }
 
     node->childLeft = NULL;
     node->childRight = NULL;
@@ -64,16 +55,7 @@ TreeNode_t* readHuffmanTree(BitReader *reader) {
       };
       node->difference = (node->difference << 1) | bit;
     }
-
     node->frequence = 0;
-    for (int i = 0; i < 32; i++) {
-      bit = readBit(reader);
-      if (bit == -1) {
-        free(node);
-        return NULL;
-      };
-      node->frequence = (node->frequence << 1) | bit;
-    }
 
     node->childLeft = readHuffmanTree(reader);
     node->childRight = readHuffmanTree(reader);
@@ -95,7 +77,7 @@ void readBinary() {
   fread(&readedHeight, sizeof(int), 1, file);
   int readedWidth;
   fread(&readedWidth, sizeof(int), 1, file);
-  printf("Readed Height: %d, Width: %d\n", readedHeight, readedWidth);
+  printf("\n\nReaded Height: %d, Width: %d\n", readedHeight, readedWidth);
 
   int numberOfSymbols;
   fread(&numberOfSymbols, sizeof(int), 1, file);
@@ -107,7 +89,6 @@ void readBinary() {
 
   Tree_t *arvoreLida = (Tree_t*)malloc(sizeof(Tree_t));
   arvoreLida->root = readedTreeRoot;
-
   printTree(arvoreLida);
 
   fclose(file);
