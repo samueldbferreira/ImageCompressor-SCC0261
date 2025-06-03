@@ -63,6 +63,33 @@ void printTreeUtil(TreeNode_t* root) {
   printTreeUtil(root->childRight);
 }
 
+void writeTreeToFileUtil(TreeNode_t *root, FILE *file) {
+  if (root == NULL) {
+    unsigned char nullMarker = 0xFF;
+    fwrite(&nullMarker, sizeof(unsigned char), 1, file);
+    return;
+  }
+
+  unsigned char isLeaf = (root->childLeft == NULL && root->childRight == NULL) ? 1 : 0;
+  fwrite(&isLeaf, sizeof(unsigned char), 1, file);
+
+  if (isLeaf) {
+    fwrite(&root->difference, sizeof(int), 1, file);
+  }
+
+  writeTreeToFileUtil(root->childLeft, file);
+  writeTreeToFileUtil(root->childRight, file);
+}
+
+void writeTreeToFile(Tree_t *root, FILE *file) {
+  if (root == NULL || file == NULL) {
+    printf("Invalid tree or file pointer at writeTreeToFile.\n");
+    return;
+  }
+
+  writeTreeToFileUtil(root->root, file);
+}
+
 void printTree(Tree_t* tree) {
   if (tree == NULL) {
     return;
@@ -104,11 +131,7 @@ void generateCodesTableUtil(TreeNode_t* root, char* code, int index, CodesTable_
   generateCodesTableUtil(root->childRight, code, index + 1, table);
 }
 
-CodesTable_t* generateCodesTable(HashTable_t* frequencesTable) {
-  List_t *items = getItems(frequencesTable);
-
-  Tree_t *tree = createTreeFromList(items);
-
+CodesTable_t* generateCodesTable(HashTable_t* frequencesTable, List_t* items, Tree_t* tree) {
   CodesTable_t *codesTable = createCodesTable();
   
   ListNode_t *aux = items->first;

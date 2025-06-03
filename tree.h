@@ -24,9 +24,13 @@ Tree_t* createTreeFromList(List_t* list);
 
 Tree_t* mergeTrees(Tree_t* a, Tree_t* b);
 
-CodesTable_t* generateCodesTable(HashTable_t* frequencesTable);
+CodesTable_t* generateCodesTable(HashTable_t* frequencesTable, List_t* items, Tree_t* tree);
+
+void writeTreeToFile(Tree_t *root, FILE *file);
 
 void printTree(Tree_t* tree);
+
+void destroyTreeUtil(TreeNode_t *root);
 
 void destroyTree(Tree_t* tree);
 
