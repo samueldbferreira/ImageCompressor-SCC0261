@@ -29,6 +29,15 @@ int main() {
     return 1;
   }
 
+  printf("\nEnter the output binary file path: ");
+  char outputFilePath[256];
+  scanf("%255s", outputFilePath);
+  if (outputFilePath[0] == '\0') {
+    printf("Invalid output file path.\n");
+    return 1;
+  }
+  printf("\nProcessing file %s...\n", inputFilePath);
+
   FILE* inputBmpFile = fopen(inputFilePath, "rb");
   if (!inputBmpFile) {
     printf("Error opening file %s\n", inputFilePath);
@@ -71,7 +80,7 @@ int main() {
 
     CodesTable_t* codesTable = generateCodesTable(frequencesTable, itemsFrequencies, treeFrequencies);
 
-    writeBinaryFile(infoHeader.biWidth, infoHeader.biHeight, treeFrequencies, differences, codesTable);
+    writeBinaryFile(infoHeader.biWidth, infoHeader.biHeight, treeFrequencies, differences, codesTable, outputFilePath);
 
     destroyCodesTable(codesTable);
 
@@ -81,7 +90,10 @@ int main() {
 
     destroyTable(frequencesTable);
 
-    readBinary();
+    readBinary(outputFilePath);
+
+    printf("\nFile %s processed successfully with lossless compression.\n", inputFilePath);
+    printf("Output written to %s\n", outputFilePath);
   }
 
   if (compressionType == 2) {

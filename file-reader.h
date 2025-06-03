@@ -16,6 +16,6 @@ void initBitReader(BitReader *reader, FILE *file);
 
 TreeNode_t *readHuffmanTree(BitReader *reader);
 
-void readBinary();
+void readBinary(char* filePath);
 
 #endif

@@ -77,8 +77,8 @@ TreeNode_t* readHuffmanTree(BitReader *reader) {
   return node;
 }
 
-void readBinary() {
-  FILE* file = fopen("output.bin", "rb");
+void readBinary(char* filePath) {
+  FILE* file = fopen(filePath, "rb");
   if (!file) {
     printf("Error opening binary file.\n");
   }

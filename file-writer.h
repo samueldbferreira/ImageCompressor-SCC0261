@@ -19,6 +19,6 @@ void flushBits(BitWriter *writer);
 
 void writeHuffmanTree(BitWriter *writer, TreeNode_t *node);
 
-void writeBinaryFile(int width, int height, Tree_t *tree, Pixel *differences, CodesTable_t* codesTable);
+void writeBinaryFile(int width, int height, Tree_t *tree, Pixel *differences, CodesTable_t* codesTable, char* outputFilePath);
 
 #endif

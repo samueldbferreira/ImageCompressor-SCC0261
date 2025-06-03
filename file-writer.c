@@ -61,8 +61,8 @@ void writeIntAsBits(BitWriter* writer, int value) {
   }
 }
 
-void writeBinaryFile(int width, int height, Tree_t *tree, Pixel *differences, CodesTable_t* codesTable) { 
-  FILE* file = fopen("./output.bin", "wb");
+void writeBinaryFile(int width, int height, Tree_t *tree, Pixel *differences, CodesTable_t* codesTable, char* outputFilePath) { 
+  FILE* file = fopen(outputFilePath, "wb");
   if (!file) {
     printf("Error opening output file.\n");
     return;
