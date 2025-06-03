@@ -87,8 +87,6 @@ void readBinary() {
   fread(&readedHeight, sizeof(int), 1, file);
   int readedWidth;
   fread(&readedWidth, sizeof(int), 1, file);
-  int numberOfSymbols;
-  fread(&numberOfSymbols, sizeof(int), 1, file);
 
   BitReader reader;
   initBitReader(&reader, file);

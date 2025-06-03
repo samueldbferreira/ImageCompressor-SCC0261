@@ -71,7 +71,7 @@ int main() {
 
     CodesTable_t* codesTable = generateCodesTable(frequencesTable, itemsFrequencies, treeFrequencies);
 
-    writeBinaryFile(infoHeader.biWidth, infoHeader.biHeight, 5, treeFrequencies, differences, codesTable);
+    writeBinaryFile(infoHeader.biWidth, infoHeader.biHeight, treeFrequencies, differences, codesTable);
 
     destroyCodesTable(codesTable);
 
