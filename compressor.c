@@ -13,6 +13,7 @@ int main() {
   printf("Enter the compression type:\n");
   printf("1 - Lossless (Differences + Huffmann)\n");
   printf("2 - Lossy (JPEG pipeline)\n");
+  printf("Enter your choice (1 or 2): ");
   int compressionType;
   scanf("%d", &compressionType);
   if (compressionType != 1 && compressionType != 2) {

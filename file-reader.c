@@ -70,7 +70,7 @@ TreeNode_t* readHuffmanTree(BitReader *reader) {
     node->childLeft = readHuffmanTree(reader);
     node->childRight = readHuffmanTree(reader);
     if (!node->childLeft || !node->childRight) {
-      destroyTreeUtil(node); // Implemente esta função
+      destroyTreeUtil(node);
       return NULL;
     }
   }
@@ -87,11 +87,8 @@ void readBinary() {
   fread(&readedHeight, sizeof(int), 1, file);
   int readedWidth;
   fread(&readedWidth, sizeof(int), 1, file);
-  printf("\n\nReaded Height: %d, Width: %d\n", readedHeight, readedWidth);
-
   int numberOfSymbols;
   fread(&numberOfSymbols, sizeof(int), 1, file);
-  printf("Number of symbols in the Huffman tree: %d\n", numberOfSymbols);
 
   BitReader reader;
   initBitReader(&reader, file);
@@ -99,14 +96,12 @@ void readBinary() {
 
   Tree_t *arvoreLida = (Tree_t*)malloc(sizeof(Tree_t));
   arvoreLida->root = readedTreeRoot;
-  // printTree(arvoreLida);
 
   Pixel* recoveredPixels = (Pixel*)malloc((readedHeight * readedWidth) * sizeof(Pixel));
 
   recoveredPixels[0].B = readIntFromBits(&reader);
   recoveredPixels[0].G = readIntFromBits(&reader);
   recoveredPixels[0].R = readIntFromBits(&reader);
-  printf("First pixel readed: B: %d, G: %d, R: %d\n", recoveredPixels[0].B, recoveredPixels[0].G, recoveredPixels[0].R);
 
   TreeNode_t* currentNode = arvoreLida->root;
   // The first pixel is skipped as it is not compressed
@@ -144,13 +139,6 @@ void readBinary() {
   }
 
   fclose(file);
-
-  /*
-  printf("recoveredPixels readed:\n");
-  for (int i = (readedWidth * readedHeight) - 100; i >=  (readedWidth * readedHeight) - 110; i--) {
-    printf("Pixel %d: B: %d, G: %d, R: %d\n", i, recoveredPixels[i].B, recoveredPixels[i].G, recoveredPixels[i].R);
-  }
-  */
 
   BMPFILEHEADER fileHeader = {
     .bfType = 0x4D42,       // 'BM'
