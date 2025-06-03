@@ -81,7 +81,7 @@ void writeBinaryFile(int width, int height, int numSymbols, Tree_t *tree, Pixel 
   writeIntAsBits(&writer, differences[0].G);
   writeIntAsBits(&writer, differences[0].R);
 
-  for (int i = 1; i < 10; i++) {
+  for (int i = 1; i < (width * height); i++) {
     SymbolCode_t* B = tableCodesSearch(codesTable, differences[i].B);
     // printf("Writing code for B [%d]: %s\n", B->difference, B->code);
     for (int j = 0; j < B->codeSize; j++) {

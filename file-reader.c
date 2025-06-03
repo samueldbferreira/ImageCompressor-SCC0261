@@ -101,7 +101,7 @@ void readBinary() {
   arvoreLida->root = readedTreeRoot;
   // printTree(arvoreLida);
 
-  Pixel* recoveredPixels = (Pixel*)malloc(10 * sizeof(Pixel));
+  Pixel* recoveredPixels = (Pixel*)malloc((readedHeight * readedWidth) * sizeof(Pixel));
 
   recoveredPixels[0].B = readIntFromBits(&reader);
   recoveredPixels[0].G = readIntFromBits(&reader);
@@ -110,7 +110,7 @@ void readBinary() {
 
   TreeNode_t* currentNode = arvoreLida->root;
   // The first pixel is skipped as it is not compressed
-  for (int i = 1; i < 10; i++) {
+  for (int i = 1; i < (readedHeight * readedWidth); i++) {
     for (int j = 0; j < 3; j++) {
       int foundLeaf = 0;
       while (foundLeaf == 0) {
@@ -145,10 +145,51 @@ void readBinary() {
 
   fclose(file);
 
+  /*
   printf("recoveredPixels readed:\n");
-  for (int i = 0; i < 10; i++) {
+  for (int i = (readedWidth * readedHeight) - 100; i >=  (readedWidth * readedHeight) - 110; i--) {
     printf("Pixel %d: B: %d, G: %d, R: %d\n", i, recoveredPixels[i].B, recoveredPixels[i].G, recoveredPixels[i].R);
   }
+  */
+
+  BMPFILEHEADER fileHeader = {
+    .bfType = 0x4D42,       // 'BM'
+    .bfSize = 54 + (readedWidth * readedHeight * 3), // Tamanho total
+    .bfReserved1 = 0,
+    .bfReserved2 = 0,
+    .bfOffBits = 54         // Offset para os pixels (14 + 40)
+  };
+
+  BMPINFOHEADER infoHeader = {
+    .biSize = 40,
+    .biWidth = readedWidth,
+    .biHeight = readedHeight,
+    .biPlanes = 1,
+    .biBitCount = 24,       // 24 bits por pixel (RGB)
+    .biCompression = 0,
+    .biSizeImage = 0,       // Pode ser 0 para BI_RGB
+    .biXPelsPerMeter = 0,
+    .biYPelsPerMeter = 0,
+    .biClrUsed = 0,
+    .biClrImportant = 0
+  };
+
+  FILE* outputBmpFile = fopen("./output.bmp", "wb");
+  if (!outputBmpFile) {
+    printf("Error opening output file.\n");
+    return;
+  }
+
+  fwrite(&fileHeader, sizeof(BMPFILEHEADER), 1, outputBmpFile);
+  fwrite(&infoHeader, sizeof(BMPINFOHEADER), 1, outputBmpFile);
+
+  for (int i = 0; i < infoHeader.biWidth * infoHeader.biHeight; i++) {
+    fputc((unsigned char)recoveredPixels[i].B, outputBmpFile);
+    fputc((unsigned char)recoveredPixels[i].G, outputBmpFile);
+    fputc((unsigned char)recoveredPixels[i].R, outputBmpFile);
+  }
+
+  fclose(outputBmpFile);
 
   destroyTree(arvoreLida);
 }
