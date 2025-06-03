@@ -6,6 +6,8 @@
 #include "codes-table.h"
 #include "file-writer.h"
 #include "file-reader.h"
+#include "channels.h"
+#include "block.h"
 
 int main() {
   char* inputFilePath = "./256x256.bmp";
