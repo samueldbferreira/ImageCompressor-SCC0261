@@ -23,6 +23,12 @@ int main() {
 
   Pixel *Image = (Pixel *) malloc((infoHeader.biWidth * infoHeader.biHeight) * sizeof(Pixel));
   loadBMPImage(inputBmpFile, infoHeader, Image);
+                  
+  Channels_t* channels = createChannels(Image, infoHeader.biWidth, infoHeader.biHeight);
+
+  Blocks_t* YBlocks = createBlocks(getY(channels), infoHeader.biWidth, infoHeader.biHeight);
+  Blocks_t* CbBlocks = createBlocks(getCb(channels), infoHeader.biWidth, infoHeader.biHeight);
+  Blocks_t* CrBlocks = createBlocks(getCr(channels), infoHeader.biWidth, infoHeader.biHeight);
 
   fclose(inputBmpFile); 
   
