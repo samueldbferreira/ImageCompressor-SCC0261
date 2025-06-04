@@ -1,6 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "block.h"
+
+#define PI 3.14159265358979323846
+
+double** createBlock() {
+  double** block = (double**) malloc(BLOCK_SIZE * sizeof(double*));
+  for (int i = 0; i < BLOCK_SIZE; i++) {
+    block[i] = (double*) malloc(BLOCK_SIZE * sizeof(double));
+  }
+
+  return block;
+}
 
 Blocks_t* createBlocks(int* channel, int width, int height) {
   Blocks_t* blocks = (Blocks_t*) malloc(sizeof(Blocks_t));
@@ -13,21 +25,14 @@ Blocks_t* createBlocks(int* channel, int width, int height) {
   int blocksPerCol = height / BLOCK_SIZE;
   int totalBlocks = blocksPerRow * blocksPerCol;
 
-  blocks->data = (float***) malloc(totalBlocks * sizeof(float**));
+  blocks->data = (double***) malloc(totalBlocks * sizeof(double**));
   if (blocks->data == NULL) {
     printf("Memory allocation failed for blocks->data\n");
     return NULL;
   }
 
   for (int i = 0; i < totalBlocks; i++) {
-    blocks->data[i] = (float**) malloc(BLOCK_SIZE * sizeof(float*));
-    for (int j = 0; j < BLOCK_SIZE; j++) {
-      blocks->data[i][j] = (float*) malloc(BLOCK_SIZE * sizeof(float));
-      if (blocks->data[i][j] == NULL) {
-        printf("Memory allocation failed for blocks->data[%d][%d]\n", i, j);
-        return NULL;
-      }
-    }
+    blocks->data[i] = createBlock();
   }
 
   for (int i = 0; i <= height - BLOCK_SIZE; i += BLOCK_SIZE) {
@@ -48,16 +53,167 @@ Blocks_t* createBlocks(int* channel, int width, int height) {
   return blocks;
 }
 
+double** getDctBlock(double** input) {
+  double sum;
+  static double cos_cache[BLOCK_SIZE][BLOCK_SIZE];
+  static int first_run = 1;
+
+  double c[BLOCK_SIZE];
+  for (int i = 0; i < BLOCK_SIZE; i++) {
+    c[i] = (i == 0) ? sqrt(1.0/2.0) : 1.0;
+  }
+  
+  if (first_run) {
+    first_run = 0;
+    for (int x = 0; x < BLOCK_SIZE; x++) {
+      for (int i = 0; i < BLOCK_SIZE; i++) {
+        cos_cache[x][i] = cos((2*x + 1) * i * PI / 16.0);
+      }
+    }
+  }
+  
+  double** output = createBlock();
+
+  for (int i = 0; i < BLOCK_SIZE; i++) {
+    for (int j = 0; j < BLOCK_SIZE; j++) {
+      sum = 0.0;
+      
+      for (int x = 0; x < BLOCK_SIZE; x++) {
+        double cos_i = cos_cache[x][i];
+        for (int y = 0; y < BLOCK_SIZE; y++) {
+          sum += input[x][y] * cos_i * cos_cache[y][j];
+        }
+      }
+      
+      output[i][j] = 0.25 * c[i] * c[j] * sum;
+    }
+  }
+
+  return output;
+}
+
+double** getIdctBlock(double** input) {
+  double sum;
+  static double cos_cache[BLOCK_SIZE][BLOCK_SIZE];
+  static int first_run = 1;
+
+  double c[BLOCK_SIZE];
+  for (int i = 0; i < BLOCK_SIZE; i++) {
+    c[i] = (i == 0) ? sqrt(1.0/2.0) : 1.0;
+  }
+
+  if (first_run) {
+    first_run = 0;
+    for (int x = 0; x < BLOCK_SIZE; x++) {
+      for (int i = 0; i < BLOCK_SIZE; i++) {
+        cos_cache[x][i] = cos((2*x + 1) * i * PI / 16.0);
+      }
+    }
+  }
+
+  double** output = createBlock();
+
+  for (int x = 0; x < BLOCK_SIZE; x++) {
+    for (int y = 0; y < BLOCK_SIZE; y++) {
+      sum = 0.0;
+      
+      for (int i = 0; i < BLOCK_SIZE; i++) {
+        double ci = c[i];
+        double cos_xi = cos_cache[x][i];
+        for (int j = 0; j < BLOCK_SIZE; j++) {
+          sum += ci * c[j] * input[i][j] * cos_xi * cos_cache[y][j];
+        }
+      }
+
+      output[x][y] = 0.25 * sum;
+    }
+  }
+
+  return output;
+}
+
+double** getQuantizedBlock(double** input, int quantizationTable[8][8]) {
+  double** output = createBlock();
+  int compressionFactor = 1;
+
+  for (int i = 0; i < BLOCK_SIZE; i++) {
+    for (int j = 0; j < BLOCK_SIZE; j++) {
+      output[i][j] = round(input[i][j] / (compressionFactor * quantizationTable[i][j]));
+    }
+  }
+
+  return output;
+}
+
+double** getDequantizedBlock(double** input, int quantizationTable[8][8]) {
+  double** output = createBlock();
+  int compressionFactor = 1;
+
+  for (int i = 0; i < BLOCK_SIZE; i++) {
+    for (int j = 0; j < BLOCK_SIZE; j++) {
+      output[i][j] = input[i][j] * quantizationTable[i][j];
+    }
+  }
+
+  return output;
+}
+
+int indexes[64] = {
+    0,  1,  8, 16,  9,  2,  3, 10,
+  17, 24, 32, 25, 18, 11,  4,  5,
+  12, 19, 26, 33, 40, 48, 41, 34,
+  27, 20, 13,  6,  7, 14, 21, 28,
+  35, 42, 49, 56, 57, 50, 43, 36,
+  29, 22, 15, 23, 30, 37, 44, 51,
+  58, 59, 52, 45, 38, 31, 39, 46,
+  53, 60, 61, 54, 47, 55, 62, 63
+};
+
+int* getZigZagArray(double** block) {
+  int* arr = (int*) malloc(64 * sizeof(int));
+
+  for (int i = 0; i < 64; i++) {
+    int row = indexes[i] / 8;
+    int col = indexes[i] % 8;
+    arr[i] = block[row][col];
+  }
+
+  return arr;
+}
+
+void destroyZigZagArray(int* arr) {
+  if (arr == NULL) {
+    printf("Invalid array (null) on destroyZigZagArray.");
+    return;
+  }
+
+  free(arr);
+}
+
+void destroyBlock(double** block) {
+  if (block == NULL) {
+    printf("Invalid block (null) on destroyBlock.");
+    return;
+  }
+
+  for (int i = 0; i < BLOCK_SIZE; i++) {
+    free(block[i]);
+  }
+  free(block);
+}
+
 void destroyBlocks(Blocks_t* blocks, int width, int height) {
+  if (blocks == NULL) {
+    printf("Invalid blocks (null) for destroyBlocks.");
+    return;
+  }
+
   int blocksPerRow = width / BLOCK_SIZE;
   int blocksPerCol = height / BLOCK_SIZE;
   int totalBlocks = blocksPerRow * blocksPerCol;
 
   for (int i = 0; i < totalBlocks; i++) {
-    for (int j = 0; j < BLOCK_SIZE; j++) {
-      free(blocks->data[i][j]);
-    }
-    free(blocks->data[i]);
+    destroyBlock(blocks->data[i]);
   }
   free(blocks->data);
   free(blocks);

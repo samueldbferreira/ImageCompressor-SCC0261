@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "image.h"
 #include "min-heap.h"
 #include "table.h"
@@ -10,6 +11,7 @@
 #include "block.h"
 
 int main() {
+  /*
   printf("Enter the compression type:\n");
   printf("1 - Lossless (Differences + Huffmann)\n");
   printf("2 - Lossy (JPEG pipeline)\n");
@@ -110,6 +112,87 @@ int main() {
 
     destroyChannels(channels);
   }
+  */
+
+  for (int i = 0; i < (infoHeader.biHeight * infoHeader.biWidth); i++) {
+    fputc(getY(channels)[i], bmpOutputFile);
+    fputc(getY(channels)[i], bmpOutputFile);
+    fputc(getY(channels)[i], bmpOutputFile);
+  }
+
+  fclose(inputBmpFile);
+  fclose(bmpOutputFile);
+
+  double** block = YBlocks->data[0];
+
+  double** output_dct = getDctBlock(block);
+
+  int quant_luminancia[8][8] = {
+    {16, 11, 10, 16, 24, 40, 51, 61},
+    {12, 12, 14, 19, 26, 58, 60, 55},
+    {14, 13, 16, 24, 40, 57, 69, 56},
+    {14, 17, 22, 29, 51, 87, 80, 62},
+    {18, 22, 37, 56, 68,109,103, 77},
+    {24, 35, 55, 64, 81,104,113, 92},
+    {79, 64, 78, 87,103,121,120,101},
+    {72, 92, 95, 98,112,100,103, 99}
+  };
+
+  int quant_crominancia[8][8] = {
+    {17, 18, 24, 47, 99, 99, 99, 99},
+    {18, 21, 26, 66, 99, 99, 99, 99},
+    {24, 26, 56, 99, 99, 99, 99, 99},
+    {47, 66, 99, 99, 99, 99, 99, 99},
+    {99, 99, 99, 99, 99, 99, 99, 99},
+    {99, 99, 99, 99, 99, 99, 99, 99},
+    {99, 99, 99, 99, 99, 99, 99, 99},
+    {99, 99, 99, 99, 99, 99, 99, 99}
+  };
+
+  double** output_quantized = getQuantizedBlock(output_dct, quant_luminancia);
+
+  double input[8][8] = {
+    { 272,   0,  0, -1,  0,  0,  0,  0 },
+    {  92,   0,  0,  0,  0,  0,  0,  0 },
+    {  -9,   2,  0,  0,  0,  0,  0,  0 },
+    {   8,   1,  0,  0, -1,  0,  0,  0 },
+    {  -1,  -1,  0,  1, -1,  0,  0,  0 },
+    {   0,   0,  0,  0,  0,  0,  0,  0 },
+    {   3,   1,  0,  0,  0,  0,  0,  0 },
+    {  -1,   0,  0,  1,  0,  0,  0,  0 }
+  };
+
+  double **zizZagInput = (double**)malloc(8 * sizeof(double*));
+  for (int i = 0; i < 8; i++) {
+    zizZagInput[i] = (double*)malloc(8 * sizeof(double));
+    for (int j = 0; j < 8; j++) {
+      zizZagInput[i][j] = input[i][j];
+    }
+  }
+
+  HashTable_t* table = createTable();
+
+  int* zigzag = getZigZagArray(zizZagInput);
+
+  for (int i = 0; i < 64; i++) {
+    tableInsert(table, zigzag[i]);
+  }
+
+  List_t* tableItems = getItems(table);
+
+  Tree_t* tree = createTreeFromList(tableItems);
+
+  printTree(tree);
+
+  destroyZigZagArray(zigzag);
+  destroyTree(tree);
+  destroyTable(table);
+  destroyBlock(zizZagInput);
+  
+  destroyBlocks(YBlocks, infoHeader.biWidth, infoHeader.biHeight);
+  destroyBlocks(CbBlocks, infoHeader.biWidth, infoHeader.biHeight);
+  destroyBlocks(CrBlocks, infoHeader.biWidth, infoHeader.biHeight);
+  destroyChannels(channels);
 
   return 0;
 }
