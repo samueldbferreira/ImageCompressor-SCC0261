@@ -99,3 +99,25 @@ void writeBinaryFile(int width, int height, Tree_t *tree, Pixel *differences, Co
   flushBits(&writer);
   fclose(file);
 }
+
+long getFileSize(const char *filename) {
+  FILE *fp = fopen(filename, "rb");
+  if (!fp) {
+    perror("Erro ao abrir arquivo");
+    return -1;
+  }
+
+  fseek(fp, 0, SEEK_END);    // Vai para o fim do arquivo
+  long size = ftell(fp);     // Pega a posição atual (tamanho)
+  fclose(fp);
+  return size;
+}
+
+float getCompressionRatio(unsigned int originalFileSize, unsigned int compressedFileSize) {
+    if (originalFileSize == 0) {
+      return -1.0f;
+    }
+
+    float ratio = (1.0f - ((float)compressedFileSize / originalFileSize)) * 100.0f;
+    return ratio;
+}

@@ -94,8 +94,17 @@ int main() {
 
     readBinary(outputFilePath);
 
-    printf("\nFile %s processed successfully with lossless compression.\n", inputFilePath);
+    unsigned int originalFileSize = fileHeader.bfSize;
+    unsigned int compressedFileSize = (unsigned int)getFileSize(outputFilePath);
+
+    printf("\nOriginal file size: %u bytes\n", originalFileSize);
+    printf("Compressed file size: %u bytes\n", compressedFileSize);
+
+    printf("\nFile %s processed successfully with lossless compression\n", inputFilePath);
     printf("Output written to %s\n", outputFilePath);
+
+    float reduction = getCompressionRatio(originalFileSize, compressedFileSize);
+    printf("Compression ratio: %.2f%%\n", reduction);
   }
 
   if (compressionType == 2) {
