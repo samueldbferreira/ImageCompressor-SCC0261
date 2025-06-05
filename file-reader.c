@@ -52,7 +52,7 @@ TreeNode_t* readHuffmanTree(BitReader *reader) {
       node->difference = (node->difference << 1) | bit;
     }
     node->frequence = 0;
-
+  
     node->childLeft = NULL;
     node->childRight = NULL;
   } else { // É nó interno
@@ -66,7 +66,7 @@ TreeNode_t* readHuffmanTree(BitReader *reader) {
       node->difference = (node->difference << 1) | bit;
     }
     node->frequence = 0;
-
+  
     node->childLeft = readHuffmanTree(reader);
     node->childRight = readHuffmanTree(reader);
     if (!node->childLeft || !node->childRight) {
@@ -178,4 +178,37 @@ void readBinary(char* filePath) {
   fclose(outputBmpFile);
 
   destroyTree(arvoreLida);
+}
+
+void readLossyBinary(char* filePath) {
+  FILE* file = fopen(filePath, "rb");
+  if (!file) {
+    printf("Error opening binary file.\n");
+  }
+
+
+  int height;
+  fread(&height, sizeof(int), 1, file);
+  
+  int width;
+  fread(&width, sizeof(int), 1, file);
+  
+  BitReader reader;
+  initBitReader(&reader, file);
+  TreeNode_t *YTreeRoot = readHuffmanTree(&reader);
+  Tree_t *YTree = (Tree_t*)malloc(sizeof(Tree_t));
+  YTree->root = YTreeRoot;
+  
+  printf("height: %d\n", height);
+  printf("width: %d\n", width);
+  if (YTree->root == NULL) {
+    printf("Error reading YTree.\n");
+    fclose(file);
+    return;
+  }
+  printTree(YTree);
+
+  fclose(file);
+
+  destroyTree(YTree);
 }

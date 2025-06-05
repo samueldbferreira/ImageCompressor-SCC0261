@@ -100,6 +100,49 @@ void writeBinaryFile(int width, int height, Tree_t *tree, Pixel *differences, Co
   fclose(file);
 }
 
+void writeLossyBinaryFile(
+  int width,
+  int height,
+  int originalWidth,
+  int originalHeigth,
+  Tree_t *YTree,
+  Tree_t *CbTree,
+  Tree_t *CrTree,
+  CodesTable_t *YCodesTable,
+  CodesTable_t *CbCodesTable,
+  CodesTable_t *CrCodesTable,
+  char* outputFilePath
+) {
+  FILE* file = fopen(outputFilePath, "wb");
+  if (!file) {
+    printf("Error opening output file.\n");
+    return;
+  }
+
+  SymbolCodesList_t *YCodesTableItems = getCodesTableItems(YCodesTable);
+
+  SymbolCodesList_t *CbCodesTableItems = getCodesTableItems(CbCodesTable);
+
+  SymbolCodesList_t *CrCodesTableItems = getCodesTableItems(CrCodesTable);
+
+  destroySymbolCodesList(YCodesTableItems);
+
+  destroySymbolCodesList(CbCodesTableItems);
+
+  destroySymbolCodesList(CrCodesTableItems);
+
+  fwrite(&originalHeigth, sizeof(int), 1, file);
+  fwrite(&originalWidth, sizeof(int), 1, file);
+
+  BitWriter writer;
+  initBitWriter(&writer, file);
+  writeHuffmanTree(&writer, YTree->root);
+
+  printTree(YTree);
+
+  fclose(file);
+}
+
 long getFileSize(const char *filename) {
   FILE *fp = fopen(filename, "rb");
   if (!fp) {
@@ -114,10 +157,10 @@ long getFileSize(const char *filename) {
 }
 
 float getCompressionRatio(unsigned int originalFileSize, unsigned int compressedFileSize) {
-    if (originalFileSize == 0) {
-      return -1.0f;
-    }
+  if (originalFileSize == 0) {
+    return -1.0f;
+  }
 
-    float ratio = (1.0f - ((float)compressedFileSize / originalFileSize)) * 100.0f;
-    return ratio;
+  float ratio = (1.0f - ((float)compressedFileSize / originalFileSize)) * 100.0f;
+  return ratio;
 }

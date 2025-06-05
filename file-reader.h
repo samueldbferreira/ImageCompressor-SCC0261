@@ -18,4 +18,6 @@ TreeNode_t *readHuffmanTree(BitReader *reader);
 
 void readBinary(char* filePath);
 
+void readLossyBinary(char* filePath);
+
 #endif

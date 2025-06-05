@@ -21,6 +21,20 @@ void writeHuffmanTree(BitWriter *writer, TreeNode_t *node);
 
 void writeBinaryFile(int width, int height, Tree_t *tree, Pixel *differences, CodesTable_t* codesTable, char* outputFilePath);
 
+void writeLossyBinaryFile(
+  int width,
+  int height,
+  int originalWidth,
+  int originalHeigth,
+  Tree_t *YTree,
+  Tree_t *CbTree,
+  Tree_t *CrTree,
+  CodesTable_t *YCodesTable,
+  CodesTable_t *CbCodesTable,
+  CodesTable_t *CrCodesTable,
+  char* outputFilePath
+);
+
 long getFileSize(const char *filename);
 
 float getCompressionRatio(unsigned int originalFileSize, unsigned int compressedFileSize);

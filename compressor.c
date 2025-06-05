@@ -11,7 +11,6 @@
 #include "block.h"
 
 int main() {
-  /*
   printf("Enter the compression type:\n");
   printf("1 - Lossless (Differences + Huffmann)\n");
   printf("2 - Lossy (JPEG pipeline)\n");
@@ -96,14 +95,10 @@ int main() {
 
     unsigned int originalFileSize = fileHeader.bfSize;
     unsigned int compressedFileSize = (unsigned int)getFileSize(outputFilePath);
-
-    printf("\nOriginal file size: %u bytes\n", originalFileSize);
-    printf("Compressed file size: %u bytes\n", compressedFileSize);
+    float reduction = getCompressionRatio(originalFileSize, compressedFileSize);
 
     printf("\nFile %s processed successfully with lossless compression\n", inputFilePath);
     printf("Output written to %s\n", outputFilePath);
-
-    float reduction = getCompressionRatio(originalFileSize, compressedFileSize);
     printf("Compression ratio: %.2f%%\n", reduction);
   }
 
@@ -114,94 +109,126 @@ int main() {
     Blocks_t* CbBlocks = createBlocks(getCb(channels), infoHeader.biWidth, infoHeader.biHeight);
     Blocks_t* CrBlocks = createBlocks(getCr(channels), infoHeader.biWidth, infoHeader.biHeight);
 
+    Blocks_t* YBlocksDct = getDctBlocks(YBlocks);
+    Blocks_t* CbBlocksDct = getDctBlocks(CbBlocks);
+    Blocks_t* CrBlocksDct = getDctBlocks(CrBlocks);
+
+    int YQUANTIZATION[8][8] = {
+      {16, 11, 10, 16, 24, 40, 51, 61},
+      {12, 12, 14, 19, 26, 58, 60, 55},
+      {14, 13, 16, 24, 40, 57, 69, 56},
+      {14, 17, 22, 29, 51, 87, 80, 62},
+      {18, 22, 37, 56, 68,109,103, 77},
+      {24, 35, 55, 64, 81,104,113, 92},
+      {79, 64, 78, 87,103,121,120,101},
+      {72, 92, 95, 98,112,100,103, 99}
+    };
+
+    int CBCRQUANTIZATION[8][8] = {
+      {17, 18, 24, 47, 99, 99, 99, 99},
+      {18, 21, 26, 66, 99, 99, 99, 99},
+      {24, 26, 56, 99, 99, 99, 99, 99},
+      {47, 66, 99, 99, 99, 99, 99, 99},
+      {99, 99, 99, 99, 99, 99, 99, 99},
+      {99, 99, 99, 99, 99, 99, 99, 99},
+      {99, 99, 99, 99, 99, 99, 99, 99},
+      {99, 99, 99, 99, 99, 99, 99, 99}
+    };
+
+    IntBlocks_t* YBlocksQuant = getQuantizedBlocks(YBlocksDct, YQUANTIZATION);
+    IntBlocks_t* CbBlocksQuant = getQuantizedBlocks(CbBlocksDct, CBCRQUANTIZATION);
+    IntBlocks_t* CrBlocksQuant = getQuantizedBlocks(CrBlocksDct, CBCRQUANTIZATION);
+
+    Tree_t* YTree;
+    Tree_t* CbTree;
+    Tree_t* CrTree;
+
+    CodesTable_t* YCodesTable;
+    CodesTable_t* CbCodesTable;
+    CodesTable_t* CrCodesTable;
+
+    for (int i = 0; i < 3; i++) {
+      IntBlocks_t* blocksQuant = NULL;
+      
+      if (i == 0) {
+        blocksQuant = YBlocksQuant;
+      } else if (i == 1) {
+        blocksQuant = CbBlocksQuant;
+      } else {
+        blocksQuant = CrBlocksQuant;
+      }
+
+      HashTable_t* frequencesTable = createTable();
+
+      for (int i = 0; i < blocksQuant->totalBlocks; i++) {
+        int* zigzag = getZigZagArray(blocksQuant->data[i]);
+
+        for (int j = 0; j < BLOCK_SIZE * BLOCK_SIZE; j++) {
+          tableInsert(frequencesTable, zigzag[j]);
+        }
+
+        destroyZigZagArray(zigzag);
+      }
+
+      List_t* items = getItems(frequencesTable);
+
+      Tree_t* tree = createTreeFromList(items);
+      if (i == 0) {
+        YTree = tree;
+      } else if (i == 1) {
+        CbTree = tree;
+      } else {
+        CrTree = tree;
+      }
+
+      CodesTable_t* codesTable = generateCodesTable(frequencesTable, items, tree);
+      if (i == 0) {
+        YCodesTable = codesTable;
+      } else if (i == 1) {
+        CbCodesTable = codesTable;
+      } else {
+        CrCodesTable = codesTable;
+      }
+
+      destroyList(items);
+
+      destroyTable(frequencesTable);
+    }
+
+    writeLossyBinaryFile(
+      infoHeader.biWidth,
+      infoHeader.biHeight,
+      infoHeader.biWidth,
+      infoHeader.biHeight,
+      YTree,
+      CbTree,
+      CrTree,
+      YCodesTable,
+      CbCodesTable,
+      CrCodesTable,
+      "lossy-output.bin"
+    );
+
+    destroyCodesTable(YCodesTable);
+    destroyCodesTable(CbCodesTable);
+    destroyCodesTable(CrCodesTable);
+
+    destroyTree(YTree);
+    destroyTree(CbTree);
+    destroyTree(CrTree);
+
+    destroyIntBlocks(CrBlocksQuant, infoHeader.biWidth, infoHeader.biHeight);
+    destroyIntBlocks(CbBlocksQuant, infoHeader.biWidth, infoHeader.biHeight);
+    destroyIntBlocks(YBlocksQuant, infoHeader.biWidth, infoHeader.biHeight);
 
     destroyBlocks(CrBlocks, infoHeader.biWidth, infoHeader.biHeight);
     destroyBlocks(CbBlocks, infoHeader.biWidth, infoHeader.biHeight);
     destroyBlocks(YBlocks, infoHeader.biWidth, infoHeader.biHeight);
-
+    
     destroyChannels(channels);
+
+    readLossyBinary("lossy-output.bin");
   }
-  */
-
-  for (int i = 0; i < (infoHeader.biHeight * infoHeader.biWidth); i++) {
-    fputc(getY(channels)[i], bmpOutputFile);
-    fputc(getY(channels)[i], bmpOutputFile);
-    fputc(getY(channels)[i], bmpOutputFile);
-  }
-
-  fclose(inputBmpFile);
-  fclose(bmpOutputFile);
-
-  double** block = YBlocks->data[0];
-
-  double** output_dct = getDctBlock(block);
-
-  int quant_luminancia[8][8] = {
-    {16, 11, 10, 16, 24, 40, 51, 61},
-    {12, 12, 14, 19, 26, 58, 60, 55},
-    {14, 13, 16, 24, 40, 57, 69, 56},
-    {14, 17, 22, 29, 51, 87, 80, 62},
-    {18, 22, 37, 56, 68,109,103, 77},
-    {24, 35, 55, 64, 81,104,113, 92},
-    {79, 64, 78, 87,103,121,120,101},
-    {72, 92, 95, 98,112,100,103, 99}
-  };
-
-  int quant_crominancia[8][8] = {
-    {17, 18, 24, 47, 99, 99, 99, 99},
-    {18, 21, 26, 66, 99, 99, 99, 99},
-    {24, 26, 56, 99, 99, 99, 99, 99},
-    {47, 66, 99, 99, 99, 99, 99, 99},
-    {99, 99, 99, 99, 99, 99, 99, 99},
-    {99, 99, 99, 99, 99, 99, 99, 99},
-    {99, 99, 99, 99, 99, 99, 99, 99},
-    {99, 99, 99, 99, 99, 99, 99, 99}
-  };
-
-  double** output_quantized = getQuantizedBlock(output_dct, quant_luminancia);
-
-  double input[8][8] = {
-    { 272,   0,  0, -1,  0,  0,  0,  0 },
-    {  92,   0,  0,  0,  0,  0,  0,  0 },
-    {  -9,   2,  0,  0,  0,  0,  0,  0 },
-    {   8,   1,  0,  0, -1,  0,  0,  0 },
-    {  -1,  -1,  0,  1, -1,  0,  0,  0 },
-    {   0,   0,  0,  0,  0,  0,  0,  0 },
-    {   3,   1,  0,  0,  0,  0,  0,  0 },
-    {  -1,   0,  0,  1,  0,  0,  0,  0 }
-  };
-
-  double **zizZagInput = (double**)malloc(8 * sizeof(double*));
-  for (int i = 0; i < 8; i++) {
-    zizZagInput[i] = (double*)malloc(8 * sizeof(double));
-    for (int j = 0; j < 8; j++) {
-      zizZagInput[i][j] = input[i][j];
-    }
-  }
-
-  HashTable_t* table = createTable();
-
-  int* zigzag = getZigZagArray(zizZagInput);
-
-  for (int i = 0; i < 64; i++) {
-    tableInsert(table, zigzag[i]);
-  }
-
-  List_t* tableItems = getItems(table);
-
-  Tree_t* tree = createTreeFromList(tableItems);
-
-  printTree(tree);
-
-  destroyZigZagArray(zigzag);
-  destroyTree(tree);
-  destroyTable(table);
-  destroyBlock(zizZagInput);
-  
-  destroyBlocks(YBlocks, infoHeader.biWidth, infoHeader.biHeight);
-  destroyBlocks(CbBlocks, infoHeader.biWidth, infoHeader.biHeight);
-  destroyBlocks(CrBlocks, infoHeader.biWidth, infoHeader.biHeight);
-  destroyChannels(channels);
 
   return 0;
 }

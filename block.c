@@ -14,6 +14,15 @@ double** createBlock() {
   return block;
 }
 
+int** createIntBlock() {
+  int** block = (int**) malloc(BLOCK_SIZE * sizeof(int*));
+  for (int i = 0; i < BLOCK_SIZE; i++) {
+    block[i] = (int*) malloc(BLOCK_SIZE * sizeof(int));
+  }
+
+  return block;
+}
+
 Blocks_t* createBlocks(int* channel, int width, int height) {
   Blocks_t* blocks = (Blocks_t*) malloc(sizeof(Blocks_t));
   if (blocks == NULL) {
@@ -92,6 +101,34 @@ double** getDctBlock(double** input) {
   return output;
 }
 
+Blocks_t* getDctBlocks(Blocks_t* blocks) {
+  if (blocks == NULL) {
+    printf("Invalid blocks (null) on getDctBlocks.");
+    return NULL;
+  }
+
+  Blocks_t* dctBlocks = (Blocks_t*) malloc(sizeof(Blocks_t));
+  if (dctBlocks == NULL) {
+    printf("Memory allocation failed for dctBlocks\n");
+    return NULL;
+  }
+
+  dctBlocks->data = (double***) malloc(blocks->totalBlocks * sizeof(double**));
+  if (dctBlocks->data == NULL) {
+    printf("Memory allocation failed for dctBlocks->data\n");
+    free(dctBlocks);
+    return NULL;
+  }
+
+  for (int i = 0; i < blocks->totalBlocks; i++) {
+    dctBlocks->data[i] = getDctBlock(blocks->data[i]);
+  }
+
+  dctBlocks->totalBlocks = blocks->totalBlocks;
+
+  return dctBlocks;
+}
+
 double** getIdctBlock(double** input) {
   double sum;
   static double cos_cache[BLOCK_SIZE][BLOCK_SIZE];
@@ -132,8 +169,8 @@ double** getIdctBlock(double** input) {
   return output;
 }
 
-double** getQuantizedBlock(double** input, int quantizationTable[8][8]) {
-  double** output = createBlock();
+int** getQuantizedBlock(double** input, int quantizationTable[8][8]) {
+  int** output = createIntBlock();
   int compressionFactor = 1;
 
   for (int i = 0; i < BLOCK_SIZE; i++) {
@@ -145,6 +182,35 @@ double** getQuantizedBlock(double** input, int quantizationTable[8][8]) {
   return output;
 }
 
+IntBlocks_t* getQuantizedBlocks(Blocks_t* blocks, int quantizationTable[8][8]) {
+  if (blocks == NULL) {
+    printf("Invalid blocks (null) on getQuantizedBlocks.");
+    return NULL;
+  }
+
+  IntBlocks_t* quantizedBlocks = (IntBlocks_t*) malloc(sizeof(IntBlocks_t));
+  if (quantizedBlocks == NULL) {
+    printf("Memory allocation failed for quantizedBlocks\n");
+    return NULL;
+  }
+
+  quantizedBlocks->data = (int***) malloc(blocks->totalBlocks * sizeof(int**));
+  if (quantizedBlocks->data == NULL) {
+    printf("Memory allocation failed for quantizedBlocks->data\n");
+    free(quantizedBlocks);
+    return NULL;
+  }
+
+  for (int i = 0; i < blocks->totalBlocks; i++) {
+    quantizedBlocks->data[i] = getQuantizedBlock(blocks->data[i], quantizationTable);
+  }
+
+  quantizedBlocks->totalBlocks = blocks->totalBlocks;
+
+  return quantizedBlocks;
+}
+
+// FIXME should be int** not double**
 double** getDequantizedBlock(double** input, int quantizationTable[8][8]) {
   double** output = createBlock();
   int compressionFactor = 1;
@@ -169,7 +235,7 @@ int indexes[64] = {
   53, 60, 61, 54, 47, 55, 62, 63
 };
 
-int* getZigZagArray(double** block) {
+int* getZigZagArray(int** block) {
   int* arr = (int*) malloc(64 * sizeof(int));
 
   for (int i = 0; i < 64; i++) {
@@ -217,4 +283,32 @@ void destroyBlocks(Blocks_t* blocks, int width, int height) {
   }
   free(blocks->data);
   free(blocks);
+}
+
+void destroyIntBlock(int** block) {
+  if (block == NULL) {
+    printf("Invalid int block (null) on destroyIntBlock.");
+    return;
+  }
+
+  for (int i = 0; i < BLOCK_SIZE; i++) {
+    free(block[i]);
+  }
+  free(block);
+}
+
+void destroyIntBlocks(IntBlocks_t* blocks, int width, int height) {
+  if (blocks == NULL) {
+    printf("Invalid blocks (null) for destroyIntBlocks.");
+    return;
+  }
+
+  int blocksPerRow = width / BLOCK_SIZE;
+  int blocksPerCol = height / BLOCK_SIZE;
+  int totalBlocks = blocksPerRow * blocksPerCol;
+
+  for (int i = 0; i < totalBlocks; i++) {
+    destroyIntBlock(blocks->data[i]);
+  }
+  free(blocks->data);  
 }
