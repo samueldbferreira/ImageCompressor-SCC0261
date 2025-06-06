@@ -257,15 +257,6 @@ int main() {
   Blocks_t* CbBlocks = createBlocks(getCb(channels), infoHeader.biWidth, infoHeader.biHeight);
   Blocks_t* CrBlocks = createBlocks(getCr(channels), infoHeader.biWidth, infoHeader.biHeight);
 
-  double** block = YBlocks->data[0];
-  for (int j = 0; j < BLOCK_SIZE; j++) {
-    for (int k = 0; k < BLOCK_SIZE; k++) {
-      printf("%f ", block[j][k]);
-    }
-    printf("\n");
-  }
-  printf("\n");
-
   Blocks_t* YBlocksDct = getDctBlocks(YBlocks);
   Blocks_t* CbBlocksDct = getDctBlocks(CbBlocks);
   Blocks_t* CrBlocksDct = getDctBlocks(CrBlocks);
@@ -277,7 +268,7 @@ int main() {
     {14, 17, 22, 29, 51, 87, 80, 62},
     {18, 22, 37, 56, 68,109,103, 77},
     {24, 35, 55, 64, 81,104,113, 92},
-    {79, 64, 78, 87,103,121,120,101},
+    {49, 64, 78, 87,103,121,120,101},
     {72, 92, 95, 98,112,100,103, 99}
   };
 

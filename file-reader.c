@@ -6,7 +6,7 @@
 #include "image.h"
 #include "block.h"
 
-int ceil_div(int a, int b) {
+int ceilDiv(int a, int b) {
   return (a + b - 1) / b;
 }
 
@@ -261,48 +261,71 @@ void readLossyBinary(char* filePath) {
   int originalHeight;
   fread(&originalHeight, sizeof(int), 1, file);
 
+  int horizontalBlocks = ceilDiv(width, BLOCK_SIZE);
+  int verticalBlocks = ceilDiv(height, BLOCK_SIZE);
+  int totalBlocks = horizontalBlocks * verticalBlocks;
+
+  IntBlocks_t* YQuantizedBlocks;
+  IntBlocks_t* CbQuantizedBlocks;
+  IntBlocks_t* CrQuantizedBlocks;
+
+  Tree_t *YTree;
+  Tree_t *CbTree;
+  Tree_t *CrTree;
+
   BitReader reader;
   initBitReader(&reader, file);
-  
-  TreeNode_t *YTreeRoot = readHuffmanTreeLossy(&reader);
-  Tree_t *YTree = (Tree_t*)malloc(sizeof(Tree_t));
-  YTree->root = YTreeRoot;
 
-  int bitsRead = 0;
-  TreeNode_t* currentNode = YTreeRoot;
+  for (int channelIndex = 0; channelIndex < 3; channelIndex++) {
+    IntBlocks_t* quantizedBlocks = createIntBlocks(totalBlocks);
+    
+    Tree_t *tree = (Tree_t*)malloc(sizeof(Tree_t));
+    TreeNode_t *treeRoot = readHuffmanTreeLossy(&reader);
+    tree->root = treeRoot;
 
-  int blocks_horizontal = ceil_div(width, 8);
-  int blocks_vertical = ceil_div(height, 8);
-  int total_blocks = blocks_horizontal * blocks_vertical;
+    TreeNode_t* currentNode = treeRoot;
+    for (int i = 0; i < totalBlocks; i++) {
+      int** block = createIntBlock();
 
-  IntBlocks_t* YQuantizedBlocks = createIntBlocks(total_blocks);
-
-  for (int i = 0; i < total_blocks; i++) {
-    int** block = createIntBlock();
-
-    int coeficientsCount = 0;
-    while (coeficientsCount < BLOCK_SIZE * BLOCK_SIZE) {
-      int bit = readBit(&reader);
-      if (bit == -1) {
-        printf("\nPremature EOF at bit\n");
-        break;
+      int coeficientsCount = 0;
+      while (coeficientsCount < BLOCK_SIZE * BLOCK_SIZE) {
+        int bit = readBit(&reader);
+        if (bit == -1) {
+          printf("\nPremature EOF at bit\n");
+          break;
+        }
+        
+        if (bit == 0) currentNode = currentNode->childLeft;
+        else currentNode = currentNode->childRight;
+        
+        if (currentNode->childLeft == NULL && currentNode->childRight == NULL) {
+          block[coeficientsCount / BLOCK_SIZE][coeficientsCount % BLOCK_SIZE] = currentNode->difference;
+          quantizedBlocks->data[i] = block;
+          currentNode = treeRoot;
+          coeficientsCount++;
+        }
       }
-      
-      if (bit == 0) currentNode = currentNode->childLeft;
-      else currentNode = currentNode->childRight;
-      
-      if (currentNode->childLeft == NULL && currentNode->childRight == NULL) {
-        block[coeficientsCount / BLOCK_SIZE][coeficientsCount % BLOCK_SIZE] = currentNode->difference;
-        YQuantizedBlocks->data[i] = block;
-        currentNode = YTreeRoot;
-        coeficientsCount++;
-      }
+    }
+
+    if (channelIndex == 0) {
+      YQuantizedBlocks = quantizedBlocks;
+      YTree = tree;
+    } else if (channelIndex == 1) {
+      CbQuantizedBlocks = quantizedBlocks;
+      CbTree = tree;
+    } else {
+      CrQuantizedBlocks = quantizedBlocks;
+      CrTree = tree;
     }
   }
 
   Blocks_t* YDctBlocks = getDequantizedBlocks(YQuantizedBlocks, YQUANTIZATION);
+  Blocks_t* CbDctBlocks = getDequantizedBlocks(CbQuantizedBlocks, CBCRQUANTIZATION);
+  Blocks_t* CrDctBlocks = getDequantizedBlocks(CrQuantizedBlocks, CBCRQUANTIZATION);
 
   Blocks_t* YIdctBlocks = getIdctBlocks(YDctBlocks);
+  Blocks_t* CbIdctBlocks = getIdctBlocks(CbDctBlocks);
+  Blocks_t* CrIdctBlocks = getIdctBlocks(CrDctBlocks);
 
   int rowSize = (width * 3 + 3) & (~3); // múltiplo de 4
   int padding = rowSize - (width * 3);
@@ -346,19 +369,29 @@ void readLossyBinary(char* filePath) {
     for (int x = 0; x < width; x++) {
       int blockX = x / BLOCK_SIZE;
       int blockY = (height - 1 - y) / BLOCK_SIZE;
-      int blockIndex = blockY * blocks_horizontal + blockX;
+      int blockIndex = blockY * horizontalBlocks + blockX;
 
-      double** block = YIdctBlocks->data[blockIndex];
       int localX = x % BLOCK_SIZE;
       int localY = (height - 1 - y) % BLOCK_SIZE;
 
-      int value = round(block[localY][localX]);
-      if (value < 0) value = 0;
-      if (value > 255) value = 255;
+      double Y = YIdctBlocks->data[blockIndex][localY][localX];
+      double Cb = CbIdctBlocks->data[blockIndex][localY][localX];
+      double Cr = CrIdctBlocks->data[blockIndex][localY][localX];
 
-      unsigned char B = value;
-      unsigned char G = value;
-      unsigned char R = value;
+      int BValue = round(Y + 1.772 * (Cb - 128));
+      int GValue = round(Y - 0.344136 * (Cb - 128) - 0.714136 * (Cr - 128));
+      int RValue = round(Y + 1.402 * (Cr - 128));
+
+      if (BValue < 0) BValue = 0;
+      if (BValue > 255) BValue = 255;
+      if (GValue < 0) GValue = 0;
+      if (GValue > 255) GValue = 255;
+      if (RValue < 0) RValue = 0;
+      if (RValue > 255) RValue = 255;
+
+      unsigned char B = BValue;
+      unsigned char G = GValue;
+      unsigned char R = RValue;
 
       fputc(B, outputBmpFile);
       fputc(G, outputBmpFile);
@@ -370,11 +403,20 @@ void readLossyBinary(char* filePath) {
   fclose(outputBmpFile);
 
   destroyBlocks(YIdctBlocks);
+  destroyBlocks(CbIdctBlocks);
+  destroyBlocks(CrIdctBlocks);
 
   destroyBlocks(YDctBlocks);
+  destroyBlocks(CbDctBlocks);
+  destroyBlocks(CrDctBlocks);
 
   destroyIntBlocks(YQuantizedBlocks);
+  destroyIntBlocks(CbQuantizedBlocks);
+  destroyIntBlocks(CrQuantizedBlocks);
 
   destroyTree(YTree);
+  destroyTree(CbTree);
+  destroyTree(CrTree);
+
   fclose(file);
 }
