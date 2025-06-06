@@ -221,6 +221,28 @@ TreeNode_t* readHuffmanTreeLossy(BitReader *reader) {
   return node;
 }
 
+int YQUANTIZATION[8][8] = {
+  {16, 11, 10, 16, 24, 40, 51, 61},
+  {12, 12, 14, 19, 26, 58, 60, 55},
+  {14, 13, 16, 24, 40, 57, 69, 56},
+  {14, 17, 22, 29, 51, 87, 80, 62},
+  {18, 22, 37, 56, 68,109,103, 77},
+  {24, 35, 55, 64, 81,104,113, 92},
+  {79, 64, 78, 87,103,121,120,101},
+  {72, 92, 95, 98,112,100,103, 99}
+};
+
+int CBCRQUANTIZATION[8][8] = {
+  {17, 18, 24, 47, 99, 99, 99, 99},
+  {18, 21, 26, 66, 99, 99, 99, 99},
+  {24, 26, 56, 99, 99, 99, 99, 99},
+  {47, 66, 99, 99, 99, 99, 99, 99},
+  {99, 99, 99, 99, 99, 99, 99, 99},
+  {99, 99, 99, 99, 99, 99, 99, 99},
+  {99, 99, 99, 99, 99, 99, 99, 99},
+  {99, 99, 99, 99, 99, 99, 99, 99}
+};
+
 void readLossyBinary(char* filePath) {
   FILE* file = fopen("lossy-output.bin", "rb");
   if (!file) {
@@ -228,7 +250,6 @@ void readLossyBinary(char* filePath) {
     return;
   }
 
-  // Read header information
   int compressionType;
   fread(&compressionType, sizeof(int), 1, file);
   int width;
@@ -242,24 +263,17 @@ void readLossyBinary(char* filePath) {
 
   BitReader reader;
   initBitReader(&reader, file);
-  TreeNode_t *treeRoot = readHuffmanTreeLossy(&reader);
-  Tree_t *tree = (Tree_t*)malloc(sizeof(Tree_t));
-  tree->root = treeRoot;
-  // printTree(tree);
+  
+  TreeNode_t *YTreeRoot = readHuffmanTreeLossy(&reader);
+  Tree_t *YTree = (Tree_t*)malloc(sizeof(Tree_t));
+  YTree->root = YTreeRoot;
 
-  printf("Reading block data:\n");
   int bitsRead = 0;
-  TreeNode_t* currentNode = treeRoot;
+  TreeNode_t* currentNode = YTreeRoot;
 
   int blocks_horizontal = ceil_div(width, 8);
   int blocks_vertical = ceil_div(height, 8);
-
   int total_blocks = blocks_horizontal * blocks_vertical;
-
-  printf("Compression Type: %d\n", compressionType);
-  printf("Width: %d, Height: %d\n", width, height);
-  printf("Original Width: %d, Original Height: %d\n", originalWidth, originalHeight);
-  printf("Total blocks: %d\n", total_blocks);
 
   IntBlocks_t* YQuantizedBlocks = createIntBlocks(total_blocks);
 
@@ -270,44 +284,21 @@ void readLossyBinary(char* filePath) {
     while (coeficientsCount < BLOCK_SIZE * BLOCK_SIZE) {
       int bit = readBit(&reader);
       if (bit == -1) {
-        printf("\nPremature EOF at bit %d\n", bitsRead);
+        printf("\nPremature EOF at bit\n");
         break;
       }
       
-      // Traverse tree
       if (bit == 0) currentNode = currentNode->childLeft;
       else currentNode = currentNode->childRight;
       
       if (currentNode->childLeft == NULL && currentNode->childRight == NULL) {
         block[coeficientsCount / BLOCK_SIZE][coeficientsCount % BLOCK_SIZE] = currentNode->difference;
         YQuantizedBlocks->data[i] = block;
-        currentNode = treeRoot; // Reset to root for next symbol
+        currentNode = YTreeRoot;
         coeficientsCount++;
       }
     }
   }
-
-  int YQUANTIZATION[8][8] = {
-    {16, 11, 10, 16, 24, 40, 51, 61},
-    {12, 12, 14, 19, 26, 58, 60, 55},
-    {14, 13, 16, 24, 40, 57, 69, 56},
-    {14, 17, 22, 29, 51, 87, 80, 62},
-    {18, 22, 37, 56, 68,109,103, 77},
-    {24, 35, 55, 64, 81,104,113, 92},
-    {79, 64, 78, 87,103,121,120,101},
-    {72, 92, 95, 98,112,100,103, 99}
-  };
-
-  int CBCRQUANTIZATION[8][8] = {
-    {17, 18, 24, 47, 99, 99, 99, 99},
-    {18, 21, 26, 66, 99, 99, 99, 99},
-    {24, 26, 56, 99, 99, 99, 99, 99},
-    {47, 66, 99, 99, 99, 99, 99, 99},
-    {99, 99, 99, 99, 99, 99, 99, 99},
-    {99, 99, 99, 99, 99, 99, 99, 99},
-    {99, 99, 99, 99, 99, 99, 99, 99},
-    {99, 99, 99, 99, 99, 99, 99, 99}
-  };
 
   Blocks_t* YDctBlocks = getDequantizedBlocks(YQuantizedBlocks, YQUANTIZATION);
 
@@ -384,6 +375,6 @@ void readLossyBinary(char* filePath) {
 
   destroyIntBlocks(YQuantizedBlocks);
 
-  destroyTree(tree);
+  destroyTree(YTree);
   fclose(file);
 }

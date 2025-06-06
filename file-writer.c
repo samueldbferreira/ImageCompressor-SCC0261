@@ -146,7 +146,6 @@ void writeLossyBinaryFile(
     return;
   }
 
-  // Write header information
   int compressionType = 1;
   fwrite(&compressionType, sizeof(int), 1, file);
   fwrite(&width, sizeof(int), 1, file);
@@ -154,21 +153,39 @@ void writeLossyBinaryFile(
   fwrite(&originalWidth, sizeof(int), 1, file);
   fwrite(&originalHeigth, sizeof(int), 1, file);
 
-  // Write Huffman tree
   BitWriter writer;
   initBitWriter(&writer, file);
-  writeHuffmanTreeLossy(&writer, YTree->root);
 
-  int totalBits = 0;
-  for (int i = 0; i < YBlocksQuant->totalBlocks; i++) {
-    int** block = YBlocksQuant->data[i];
-    for (int j = 0; j < BLOCK_SIZE; j++) {
-      for (int k = 0; k < BLOCK_SIZE; k++) {
-        SymbolCode_t* symbolCode = tableCodesSearch(YCodesTable, block[j][k]);
-        for (int l = 0; l < symbolCode->codeSize; l++) {
-          int bit = symbolCode->code[l] - '0';
-          writeBit(&writer, bit);
-          totalBits++;
+  for (int channelIndex = 0; channelIndex < 3; channelIndex++) {
+    Tree_t* tree;
+    IntBlocks_t* blocks;
+    CodesTable_t* codesTable;
+
+    if (channelIndex == 0) {
+      tree = YTree;
+      blocks = YBlocksQuant;
+      codesTable = YCodesTable;
+    } else if (channelIndex == 1) {
+      tree = CbTree;
+      blocks = CbBlocksQuant;
+      codesTable = CbCodesTable;
+    } else {
+      tree = CrTree;
+      blocks = CrBlocksQuant;
+      codesTable = CrCodesTable;
+    }
+
+    writeHuffmanTreeLossy(&writer, tree->root);
+
+    for (int blockIndex = 0; blockIndex < blocks->totalBlocks; blockIndex++) {
+      int** block = blocks->data[blockIndex];
+      for (int x = 0; x < BLOCK_SIZE; x++) {
+        for (int y = 0; y < BLOCK_SIZE; y++) {
+          SymbolCode_t* symbolCode = tableCodesSearch(codesTable, block[x][y]);
+          for (int symbolIndex = 0; symbolIndex < symbolCode->codeSize; symbolIndex++) {
+            int bit = symbolCode->code[symbolIndex] - '0';
+            writeBit(&writer, bit);
+          }
         }
       }
     }
