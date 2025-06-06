@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "tree.h"
 #include "image.h"
+#include "block.h"
 
 typedef struct BitWriter {
   FILE *file;
@@ -21,6 +22,8 @@ void writeHuffmanTree(BitWriter *writer, TreeNode_t *node);
 
 void writeBinaryFile(int width, int height, Tree_t *tree, Pixel *differences, CodesTable_t* codesTable, char* outputFilePath);
 
+void writeHuffmanTreeLossy(BitWriter *writer, TreeNode_t *node);
+
 void writeLossyBinaryFile(
   int width,
   int height,
@@ -32,6 +35,9 @@ void writeLossyBinaryFile(
   CodesTable_t *YCodesTable,
   CodesTable_t *CbCodesTable,
   CodesTable_t *CrCodesTable,
+  IntBlocks_t *YBlocksQuant,
+  IntBlocks_t *CbBlocksQuant,
+  IntBlocks_t *CrBlocksQuant,
   char* outputFilePath
 );
 

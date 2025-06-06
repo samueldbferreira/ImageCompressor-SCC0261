@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include "file-writer.h"
 #include "image.h"
+#include "block.h"
+#include <stdint.h>
 
 void initBitWriter(BitWriter *writer, FILE *file) {
   writer->file = file;
@@ -22,8 +24,9 @@ void writeBit(BitWriter *writer, int bit) {
 
 void flushBits(BitWriter *writer) {
   if (writer->bitCount > 0) {
-    writer->buffer <<= (8 - writer->bitCount);
-    fwrite(&writer->buffer, 1, 1, writer->file);
+    // Alinha os bits para a esquerda para não deixar 0s no fim
+    uint8_t aligned = writer->buffer << (8 - writer->bitCount);
+    fwrite(&aligned, 1, 1, writer->file);
     writer->buffer = 0;
     writer->bitCount = 0;
   }
@@ -100,6 +103,27 @@ void writeBinaryFile(int width, int height, Tree_t *tree, Pixel *differences, Co
   fclose(file);
 }
 
+void writeHuffmanTreeLossy(BitWriter *writer, TreeNode_t *node) {
+  if (node == NULL) {
+    writeBit(writer, 0); // Marca nó nulo
+    return;
+  }
+  
+  writeBit(writer, 1); // Marca que existe nó
+  
+  if (node->childLeft == NULL && node->childRight == NULL) {
+    writeBit(writer, 1); // Marca como folha
+    // Escreve a diferença (32 bits)
+    writeIntAsBits(writer, node->difference);
+  } else {
+    writeBit(writer, 0); // Marca como nó interno
+    // Escreve a diferença (32 bits)
+    writeIntAsBits(writer, node->difference);
+    writeHuffmanTreeLossy(writer, node->childLeft);
+    writeHuffmanTreeLossy(writer, node->childRight);
+  }
+}
+
 void writeLossyBinaryFile(
   int width,
   int height,
@@ -111,35 +135,47 @@ void writeLossyBinaryFile(
   CodesTable_t *YCodesTable,
   CodesTable_t *CbCodesTable,
   CodesTable_t *CrCodesTable,
+  IntBlocks_t *YBlocksQuant,
+  IntBlocks_t *CbBlocksQuant,
+  IntBlocks_t *CrBlocksQuant,
   char* outputFilePath
 ) {
-  FILE* file = fopen(outputFilePath, "wb");
+  FILE* file = fopen("lossy-output.bin", "wb");
   if (!file) {
     printf("Error opening output file.\n");
     return;
   }
 
-  SymbolCodesList_t *YCodesTableItems = getCodesTableItems(YCodesTable);
-
-  SymbolCodesList_t *CbCodesTableItems = getCodesTableItems(CbCodesTable);
-
-  SymbolCodesList_t *CrCodesTableItems = getCodesTableItems(CrCodesTable);
-
-  destroySymbolCodesList(YCodesTableItems);
-
-  destroySymbolCodesList(CbCodesTableItems);
-
-  destroySymbolCodesList(CrCodesTableItems);
-
-  fwrite(&originalHeigth, sizeof(int), 1, file);
+  // Write header information
+  int compressionType = 1;
+  fwrite(&compressionType, sizeof(int), 1, file);
+  fwrite(&width, sizeof(int), 1, file);
+  fwrite(&height, sizeof(int), 1, file);
   fwrite(&originalWidth, sizeof(int), 1, file);
+  fwrite(&originalHeigth, sizeof(int), 1, file);
 
+  // Write Huffman tree
   BitWriter writer;
   initBitWriter(&writer, file);
-  writeHuffmanTree(&writer, YTree->root);
+  writeHuffmanTreeLossy(&writer, YTree->root);
 
-  printTree(YTree);
+  int totalBits = 0;
+  for (int i = 0; i < YBlocksQuant->totalBlocks; i++) {
+    int** block = YBlocksQuant->data[i];
+    for (int j = 0; j < BLOCK_SIZE; j++) {
+      for (int k = 0; k < BLOCK_SIZE; k++) {
+        SymbolCode_t* symbolCode = tableCodesSearch(YCodesTable, block[j][k]);
+        for (int l = 0; l < symbolCode->codeSize; l++) {
+          int bit = symbolCode->code[l] - '0';
+          writeBit(&writer, bit);
+          totalBits++;
+        }
+      }
+    }
+  }
 
+  flushBits(&writer);
+  
   fclose(file);
 }
 

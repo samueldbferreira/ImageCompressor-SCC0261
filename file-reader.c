@@ -1,8 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "tree.h"
 #include "file-reader.h"
 #include "image.h"
+#include "block.h"
+
+int ceil_div(int a, int b) {
+  return (a + b - 1) / b;
+}
 
 void initBitReader(BitReader *reader, FILE *file) {
   reader->file = file;
@@ -180,35 +186,204 @@ void readBinary(char* filePath) {
   destroyTree(arvoreLida);
 }
 
+TreeNode_t* readHuffmanTreeLossy(BitReader *reader) {
+  int bit = readBit(reader);
+  if (bit == -1) return NULL; // EOF real
+
+  if (bit == 0) return NULL; // Nó nulo
+
+  bit = readBit(reader); // 1 = folha, 0 = interno
+  if (bit == -1) return NULL;
+
+  TreeNode_t *node = malloc(sizeof(TreeNode_t));
+  if (!node) return NULL;
+
+  node->difference = 0;
+  for (int i = 0; i < 32; i++) {
+    int b = readBit(reader);
+    if (b == -1) {
+      free(node);
+      return NULL;
+    }
+    node->difference = (node->difference << 1) | b;
+  }
+
+  node->frequence = 0;
+
+  if (bit == 1) {
+    node->childLeft = NULL;
+    node->childRight = NULL;
+  } else {
+    node->childLeft = readHuffmanTreeLossy(reader);
+    node->childRight = readHuffmanTreeLossy(reader);
+  }
+
+  return node;
+}
+
 void readLossyBinary(char* filePath) {
-  FILE* file = fopen(filePath, "rb");
+  FILE* file = fopen("lossy-output.bin", "rb");
   if (!file) {
     printf("Error opening binary file.\n");
-  }
-
-
-  int height;
-  fread(&height, sizeof(int), 1, file);
-  
-  int width;
-  fread(&width, sizeof(int), 1, file);
-  
-  BitReader reader;
-  initBitReader(&reader, file);
-  TreeNode_t *YTreeRoot = readHuffmanTree(&reader);
-  Tree_t *YTree = (Tree_t*)malloc(sizeof(Tree_t));
-  YTree->root = YTreeRoot;
-  
-  printf("height: %d\n", height);
-  printf("width: %d\n", width);
-  if (YTree->root == NULL) {
-    printf("Error reading YTree.\n");
-    fclose(file);
     return;
   }
-  printTree(YTree);
 
+  // Read header information
+  int compressionType;
+  fread(&compressionType, sizeof(int), 1, file);
+  int width;
+  fread(&width, sizeof(int), 1, file);
+  int height;
+  fread(&height, sizeof(int), 1, file);
+  int originalWidth;
+  fread(&originalWidth, sizeof(int), 1, file);
+  int originalHeight;
+  fread(&originalHeight, sizeof(int), 1, file);
+
+  BitReader reader;
+  initBitReader(&reader, file);
+  TreeNode_t *treeRoot = readHuffmanTreeLossy(&reader);
+  Tree_t *tree = (Tree_t*)malloc(sizeof(Tree_t));
+  tree->root = treeRoot;
+  // printTree(tree);
+
+  printf("Reading block data:\n");
+  int bitsRead = 0;
+  TreeNode_t* currentNode = treeRoot;
+
+  int blocks_horizontal = ceil_div(width, 8);
+  int blocks_vertical = ceil_div(height, 8);
+
+  int total_blocks = blocks_horizontal * blocks_vertical;
+
+  printf("Compression Type: %d\n", compressionType);
+  printf("Width: %d, Height: %d\n", width, height);
+  printf("Original Width: %d, Original Height: %d\n", originalWidth, originalHeight);
+  printf("Total blocks: %d\n", total_blocks);
+
+  IntBlocks_t* YQuantizedBlocks = createIntBlocks(total_blocks);
+
+  for (int i = 0; i < total_blocks; i++) {
+    int** block = createIntBlock();
+
+    int coeficientsCount = 0;
+    while (coeficientsCount < BLOCK_SIZE * BLOCK_SIZE) {
+      int bit = readBit(&reader);
+      if (bit == -1) {
+        printf("\nPremature EOF at bit %d\n", bitsRead);
+        break;
+      }
+      
+      // Traverse tree
+      if (bit == 0) currentNode = currentNode->childLeft;
+      else currentNode = currentNode->childRight;
+      
+      if (currentNode->childLeft == NULL && currentNode->childRight == NULL) {
+        block[coeficientsCount / BLOCK_SIZE][coeficientsCount % BLOCK_SIZE] = currentNode->difference;
+        YQuantizedBlocks->data[i] = block;
+        currentNode = treeRoot; // Reset to root for next symbol
+        coeficientsCount++;
+      }
+    }
+  }
+
+  int YQUANTIZATION[8][8] = {
+    {16, 11, 10, 16, 24, 40, 51, 61},
+    {12, 12, 14, 19, 26, 58, 60, 55},
+    {14, 13, 16, 24, 40, 57, 69, 56},
+    {14, 17, 22, 29, 51, 87, 80, 62},
+    {18, 22, 37, 56, 68,109,103, 77},
+    {24, 35, 55, 64, 81,104,113, 92},
+    {79, 64, 78, 87,103,121,120,101},
+    {72, 92, 95, 98,112,100,103, 99}
+  };
+
+  int CBCRQUANTIZATION[8][8] = {
+    {17, 18, 24, 47, 99, 99, 99, 99},
+    {18, 21, 26, 66, 99, 99, 99, 99},
+    {24, 26, 56, 99, 99, 99, 99, 99},
+    {47, 66, 99, 99, 99, 99, 99, 99},
+    {99, 99, 99, 99, 99, 99, 99, 99},
+    {99, 99, 99, 99, 99, 99, 99, 99},
+    {99, 99, 99, 99, 99, 99, 99, 99},
+    {99, 99, 99, 99, 99, 99, 99, 99}
+  };
+
+  Blocks_t* YDctBlocks = getDequantizedBlocks(YQuantizedBlocks, YQUANTIZATION);
+
+  Blocks_t* YIdctBlocks = getIdctBlocks(YDctBlocks);
+
+  int rowSize = (width * 3 + 3) & (~3); // múltiplo de 4
+  int padding = rowSize - (width * 3);
+  int imageSize = rowSize * height;
+
+  BMPFILEHEADER fileHeader = {
+    .bfType = 0x4D42,       // 'BM'
+    .bfSize = 54 + imageSize,
+    .bfReserved1 = 0,
+    .bfReserved2 = 0,
+    .bfOffBits = 54
+  };
+
+  BMPINFOHEADER infoHeader = {
+    .biSize = 40,
+    .biWidth = width,
+    .biHeight = height,
+    .biPlanes = 1,
+    .biBitCount = 24,
+    .biCompression = 0,
+    .biSizeImage = imageSize,
+    .biXPelsPerMeter = 0,
+    .biYPelsPerMeter = 0,
+    .biClrUsed = 0,
+    .biClrImportant = 0
+  };
+
+  FILE* outputBmpFile = fopen("./output-lossy.bmp", "wb");
+  if (!outputBmpFile) {
+    printf("Error opening output file.\n");
+    return;
+  }
+
+  fwrite(&fileHeader, sizeof(BMPFILEHEADER), 1, outputBmpFile);
+  fwrite(&infoHeader, sizeof(BMPINFOHEADER), 1, outputBmpFile);
+
+  // Buffer de padding
+  unsigned char paddingBytes[3] = {0, 0, 0};
+
+  for (int y = height - 1; y >= 0; y--) {
+    for (int x = 0; x < width; x++) {
+      int blockX = x / BLOCK_SIZE;
+      int blockY = (height - 1 - y) / BLOCK_SIZE;
+      int blockIndex = blockY * blocks_horizontal + blockX;
+
+      double** block = YIdctBlocks->data[blockIndex];
+      int localX = x % BLOCK_SIZE;
+      int localY = (height - 1 - y) % BLOCK_SIZE;
+
+      int value = round(block[localY][localX]);
+      if (value < 0) value = 0;
+      if (value > 255) value = 255;
+
+      unsigned char B = value;
+      unsigned char G = value;
+      unsigned char R = value;
+
+      fputc(B, outputBmpFile);
+      fputc(G, outputBmpFile);
+      fputc(R, outputBmpFile);
+    }
+    fwrite(paddingBytes, 1, padding, outputBmpFile); // escreve padding
+  }
+
+  fclose(outputBmpFile);
+
+  destroyBlocks(YIdctBlocks);
+
+  destroyBlocks(YDctBlocks);
+
+  destroyIntBlocks(YQuantizedBlocks);
+
+  destroyTree(tree);
   fclose(file);
-
-  destroyTree(YTree);
 }

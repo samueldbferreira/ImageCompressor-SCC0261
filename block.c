@@ -62,6 +62,22 @@ Blocks_t* createBlocks(int* channel, int width, int height) {
   return blocks;
 }
 
+IntBlocks_t* createIntBlocks(int totalBlocks) {
+  IntBlocks_t* blocks = (IntBlocks_t*) malloc(sizeof(IntBlocks_t));
+  if (blocks == NULL) {
+    printf("Memory allocation failed for int blocks\n");
+    return NULL;
+  }
+
+  blocks->totalBlocks = totalBlocks;
+  blocks->data = (int***) malloc(totalBlocks * sizeof(int**));
+  for (int i = 0; i < totalBlocks; i++) {
+    blocks->data[i] = createIntBlock();
+  }
+
+  return blocks;
+}
+
 double** getDctBlock(double** input) {
   double sum;
   static double cos_cache[BLOCK_SIZE][BLOCK_SIZE];
@@ -169,6 +185,34 @@ double** getIdctBlock(double** input) {
   return output;
 }
 
+Blocks_t* getIdctBlocks(Blocks_t* blocks) {
+  if (blocks == NULL) {
+    printf("Invalid blocks (null) on getIdctBlocks.");
+    return NULL;
+  }
+
+  Blocks_t* idctBlocks = (Blocks_t*) malloc(sizeof(Blocks_t));
+  if (idctBlocks == NULL) {
+    printf("Memory allocation failed for idctBlocks\n");
+    return NULL;
+  }
+
+  idctBlocks->data = (double***) malloc(blocks->totalBlocks * sizeof(double**));
+  if (idctBlocks->data == NULL) {
+    printf("Memory allocation failed for idctBlocks->data\n");
+    free(idctBlocks);
+    return NULL;
+  }
+
+  for (int i = 0; i < blocks->totalBlocks; i++) {
+    idctBlocks->data[i] = getIdctBlock(blocks->data[i]);
+  }
+
+  idctBlocks->totalBlocks = blocks->totalBlocks;
+
+  return idctBlocks;
+}
+
 int** getQuantizedBlock(double** input, int quantizationTable[8][8]) {
   int** output = createIntBlock();
   int compressionFactor = 1;
@@ -210,8 +254,7 @@ IntBlocks_t* getQuantizedBlocks(Blocks_t* blocks, int quantizationTable[8][8]) {
   return quantizedBlocks;
 }
 
-// FIXME should be int** not double**
-double** getDequantizedBlock(double** input, int quantizationTable[8][8]) {
+double** getDequantizedBlock(int** input, int quantizationTable[8][8]) {
   double** output = createBlock();
   int compressionFactor = 1;
 
@@ -222,6 +265,34 @@ double** getDequantizedBlock(double** input, int quantizationTable[8][8]) {
   }
 
   return output;
+}
+
+Blocks_t* getDequantizedBlocks(IntBlocks_t* blocks, int quantizationTable[8][8]) {
+  if (blocks == NULL) {
+    printf("Invalid blocks (null) on getDequantizedBlocks.");
+    return NULL;
+  }
+
+  Blocks_t* dequantizedBlocks = (Blocks_t*) malloc(sizeof(Blocks_t));
+  if (dequantizedBlocks == NULL) {
+    printf("Memory allocation failed for dequantizedBlocks\n");
+    return NULL;
+  }
+
+  dequantizedBlocks->data = (double***) malloc(blocks->totalBlocks * sizeof(double**));
+  if (dequantizedBlocks->data == NULL) {
+    printf("Memory allocation failed for dequantizedBlocks->data\n");
+    free(dequantizedBlocks);
+    return NULL;
+  }
+
+  for (int i = 0; i < blocks->totalBlocks; i++) {
+    dequantizedBlocks->data[i] = getDequantizedBlock(blocks->data[i], quantizationTable);
+  }
+
+  dequantizedBlocks->totalBlocks = blocks->totalBlocks;
+
+  return dequantizedBlocks;
 }
 
 int indexes[64] = {
@@ -268,17 +339,13 @@ void destroyBlock(double** block) {
   free(block);
 }
 
-void destroyBlocks(Blocks_t* blocks, int width, int height) {
+void destroyBlocks(Blocks_t* blocks) {
   if (blocks == NULL) {
     printf("Invalid blocks (null) for destroyBlocks.");
     return;
   }
 
-  int blocksPerRow = width / BLOCK_SIZE;
-  int blocksPerCol = height / BLOCK_SIZE;
-  int totalBlocks = blocksPerRow * blocksPerCol;
-
-  for (int i = 0; i < totalBlocks; i++) {
+  for (int i = 0; i < blocks->totalBlocks; i++) {
     destroyBlock(blocks->data[i]);
   }
   free(blocks->data);
@@ -297,17 +364,13 @@ void destroyIntBlock(int** block) {
   free(block);
 }
 
-void destroyIntBlocks(IntBlocks_t* blocks, int width, int height) {
+void destroyIntBlocks(IntBlocks_t* blocks) {
   if (blocks == NULL) {
     printf("Invalid blocks (null) for destroyIntBlocks.");
     return;
   }
 
-  int blocksPerRow = width / BLOCK_SIZE;
-  int blocksPerCol = height / BLOCK_SIZE;
-  int totalBlocks = blocksPerRow * blocksPerCol;
-
-  for (int i = 0; i < totalBlocks; i++) {
+  for (int i = 0; i < blocks->totalBlocks; i++) {
     destroyIntBlock(blocks->data[i]);
   }
   free(blocks->data);  

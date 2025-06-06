@@ -4,10 +4,11 @@
 #include <stdio.h>
 #include "tree.h"
 
-typedef struct BitReader {
-  FILE *file;
+typedef struct {
+  FILE* file;
   unsigned char buffer;
   int bitCount;
+  int eof;
 } BitReader;
 
 int readBit(BitReader *reader);
@@ -17,6 +18,8 @@ void initBitReader(BitReader *reader, FILE *file);
 TreeNode_t *readHuffmanTree(BitReader *reader);
 
 void readBinary(char* filePath);
+
+TreeNode_t* readHuffmanTreeLossy(BitReader *reader);
 
 void readLossyBinary(char* filePath);
 
