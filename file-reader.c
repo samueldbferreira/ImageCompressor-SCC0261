@@ -244,7 +244,7 @@ int CBCRQUANTIZATION[8][8] = {
 };
 
 void readLossyBinary(char* filePath) {
-  FILE* file = fopen("lossy-output.bin", "rb");
+  FILE* file = fopen(filePath, "rb");
   if (!file) {
     printf("Error opening binary file.\n");
     return;

@@ -140,7 +140,7 @@ void writeLossyBinaryFile(
   IntBlocks_t *CrBlocksQuant,
   char* outputFilePath
 ) {
-  FILE* file = fopen("lossy-output.bin", "wb");
+  FILE* file = fopen(outputFilePath, "wb");
   if (!file) {
     printf("Error opening output file.\n");
     return;
