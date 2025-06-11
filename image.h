@@ -38,6 +38,6 @@ void printFileHeader(BMPFILEHEADER *header);
 
 void printInfoHeader(BMPINFOHEADER *header);
 
-void loadBMPImage(FILE *input, BMPINFOHEADER InfoHeader, Pixel *Image);
+void loadBMPImage(FILE *input, BMPINFOHEADER InfoHeader, Pixel *Image, int compressionType);
 
 #endif

@@ -17,6 +17,8 @@ double** createBlock();
 
 int** createIntBlock();
 
+int ceilDiv(int a, int b);
+
 Blocks_t* createBlocks(int* channel, int width, int height);
 
 IntBlocks_t* createIntBlocks(int totalBlocks);

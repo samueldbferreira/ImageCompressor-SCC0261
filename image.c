@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "image.h"
+#include "block.h"
 
 void leituraHeader(FILE *F, BMPFILEHEADER *H) {
   fread(&H->bfType, sizeof(unsigned short), 1, F);
@@ -49,15 +50,42 @@ void printInfoHeader(BMPINFOHEADER *header) {
   printf("biClrImportant: %u\n", header->biClrImportant);
 }
 
-void loadBMPImage(FILE *input, BMPINFOHEADER InfoHeader, Pixel *Image){
-  int i, j, tam;
- 
-  tam = InfoHeader.biHeight * InfoHeader.biWidth;
-  fseek(input, 54, SEEK_SET); //skipping the header (54 bytes)
-   
-  for (i=0; i < tam; i++){
-    Image[i].B = fgetc(input);
-    Image[i].G = fgetc(input);
-    Image[i].R = fgetc(input);
+void loadBMPImage(FILE *input, BMPINFOHEADER InfoHeader, Pixel *Image, int compressionType) {
+  fseek(input, 54, SEEK_SET);
+
+  if (compressionType == 1) {
+    int tam = InfoHeader.biHeight * InfoHeader.biWidth;
+
+    for (int i = 0; i < tam; i++){
+      Image[i].B = fgetc(input);
+      Image[i].G = fgetc(input);
+      Image[i].R = fgetc(input);
+    }
+  } else {
+    int newWidth = ceilDiv(InfoHeader.biWidth, BLOCK_SIZE) * BLOCK_SIZE;
+    int newHeight = ceilDiv(InfoHeader.biHeight, BLOCK_SIZE) * BLOCK_SIZE;
+
+    int originalRowSize = InfoHeader.biWidth * 3;
+    int paddedRowSize = ((originalRowSize + 3) / 4) * 4;
+    int paddingSize = paddedRowSize - originalRowSize;
+
+    for (int i = 0; i < newWidth * newHeight; i++) {
+      int x = i % newWidth;
+      int y = i / newWidth;
+
+      if (x < InfoHeader.biWidth && y < InfoHeader.biHeight) {
+        Image[i].B = fgetc(input);
+        Image[i].G = fgetc(input);
+        Image[i].R = fgetc(input);
+
+        if (x == InfoHeader.biWidth - 1) {
+          fseek(input, paddingSize, SEEK_CUR);
+        }
+      } else {
+        Image[i].B = 0;
+        Image[i].G = 0;
+        Image[i].R = 0;
+      }
+    }
   }
 }

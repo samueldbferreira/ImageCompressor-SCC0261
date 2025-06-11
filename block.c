@@ -23,6 +23,10 @@ int** createIntBlock() {
   return block;
 }
 
+int ceilDiv(int a, int b) {
+  return (a + b - 1) / b;
+}
+
 Blocks_t* createBlocks(int* channel, int width, int height) {
   Blocks_t* blocks = (Blocks_t*) malloc(sizeof(Blocks_t));
   if (blocks == NULL) {

@@ -51,12 +51,12 @@ int main() {
   BMPINFOHEADER infoHeader;
   leituraInfoHeader(inputBmpFile, &infoHeader);
 
-  Pixel *Image = (Pixel *) malloc((infoHeader.biWidth * infoHeader.biHeight) * sizeof(Pixel));
-  loadBMPImage(inputBmpFile, infoHeader, Image);
-
-  fclose(inputBmpFile); 
-
   if (compressionType == 1) {
+    Pixel *Image = (Pixel *) malloc((infoHeader.biWidth * infoHeader.biHeight) * sizeof(Pixel));
+    loadBMPImage(inputBmpFile, infoHeader, Image, 1);
+
+    fclose(inputBmpFile);
+
     Pixel* differences = (Pixel *) malloc((infoHeader.biWidth * infoHeader.biHeight) * sizeof(Pixel));
     differences[0].B = Image[0].B;
     differences[0].G = Image[0].G;
@@ -95,11 +95,19 @@ int main() {
   }
 
   if (compressionType == 2) {
-    Channels_t* channels = createChannels(Image, infoHeader.biWidth, infoHeader.biHeight);
+    int newWidth = ceilDiv(infoHeader.biWidth, BLOCK_SIZE) * BLOCK_SIZE;
+    int newHeight = ceilDiv(infoHeader.biHeight, BLOCK_SIZE) * BLOCK_SIZE;
 
-    Blocks_t* YBlocks = createBlocks(getY(channels), infoHeader.biWidth, infoHeader.biHeight);
-    Blocks_t* CbBlocks = createBlocks(getCb(channels), infoHeader.biWidth, infoHeader.biHeight);
-    Blocks_t* CrBlocks = createBlocks(getCr(channels), infoHeader.biWidth, infoHeader.biHeight);
+    Pixel *Image = (Pixel *) malloc((newWidth * newHeight) * sizeof(Pixel));
+    loadBMPImage(inputBmpFile, infoHeader, Image, 2);
+
+    fclose(inputBmpFile);
+
+    Channels_t* channels = createChannels(Image, newWidth, newHeight);
+  
+    Blocks_t* YBlocks = createBlocks(getY(channels), newWidth, newHeight);
+    Blocks_t* CbBlocks = createBlocks(getCb(channels), newWidth, newHeight);
+    Blocks_t* CrBlocks = createBlocks(getCr(channels), newWidth, newHeight);
 
     Blocks_t* YBlocksDct = getDctBlocks(YBlocks);
     Blocks_t* CbBlocksDct = getDctBlocks(CbBlocks);
@@ -188,8 +196,8 @@ int main() {
     }
 
     writeLossyBinaryFile(
-      infoHeader.biWidth,
-      infoHeader.biHeight,
+      newWidth,
+      newHeight,
       infoHeader.biWidth,
       infoHeader.biHeight,
       YTree,

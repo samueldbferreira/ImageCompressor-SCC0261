@@ -6,10 +6,6 @@
 #include "image.h"
 #include "block.h"
 
-int ceilDiv(int a, int b) {
-  return (a + b - 1) / b;
-}
-
 void initBitReader(BitReader *reader, FILE *file) {
   reader->file = file;
   reader->buffer = 0;
@@ -327,12 +323,12 @@ void readLossyBinary(char* filePath) {
   Blocks_t* CbIdctBlocks = getIdctBlocks(CbDctBlocks);
   Blocks_t* CrIdctBlocks = getIdctBlocks(CrDctBlocks);
 
-  int rowSize = (width * 3 + 3) & (~3); // múltiplo de 4
-  int padding = rowSize - (width * 3);
-  int imageSize = rowSize * height;
+  int rowSize = (originalWidth * 3 + 3) & (~3);
+  int padding = rowSize - (originalWidth * 3);
+  int imageSize = rowSize * originalHeight;
 
   BMPFILEHEADER fileHeader = {
-    .bfType = 0x4D42,       // 'BM'
+    .bfType = 0x4D42,
     .bfSize = 54 + imageSize,
     .bfReserved1 = 0,
     .bfReserved2 = 0,
@@ -341,8 +337,8 @@ void readLossyBinary(char* filePath) {
 
   BMPINFOHEADER infoHeader = {
     .biSize = 40,
-    .biWidth = width,
-    .biHeight = height,
+    .biWidth = originalWidth,
+    .biHeight = originalHeight,
     .biPlanes = 1,
     .biBitCount = 24,
     .biCompression = 0,
@@ -365,14 +361,14 @@ void readLossyBinary(char* filePath) {
   // Buffer de padding
   unsigned char paddingBytes[3] = {0, 0, 0};
 
-  for (int y = height - 1; y >= 0; y--) {
-    for (int x = 0; x < width; x++) {
+  for (int y = originalHeight - 1; y >= 0; y--) {
+    for (int x = 0; x < originalWidth; x++) {
       int blockX = x / BLOCK_SIZE;
-      int blockY = (height - 1 - y) / BLOCK_SIZE;
+      int blockY = (originalHeight - 1 - y) / BLOCK_SIZE;
       int blockIndex = blockY * horizontalBlocks + blockX;
 
       int localX = x % BLOCK_SIZE;
-      int localY = (height - 1 - y) % BLOCK_SIZE;
+      int localY = (originalHeight - 1 - y) % BLOCK_SIZE;
 
       double Y = YIdctBlocks->data[blockIndex][localY][localX];
       double Cb = CbIdctBlocks->data[blockIndex][localY][localX];
