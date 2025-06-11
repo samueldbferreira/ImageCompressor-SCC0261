@@ -84,19 +84,19 @@ IntBlocks_t* createIntBlocks(int totalBlocks) {
 
 double** getDctBlock(double** input) {
   double sum;
-  static double cos_cache[BLOCK_SIZE][BLOCK_SIZE];
+  static double cosCache[BLOCK_SIZE][BLOCK_SIZE];
   static int first_run = 1;
 
   double c[BLOCK_SIZE];
   for (int i = 0; i < BLOCK_SIZE; i++) {
-    c[i] = (i == 0) ? sqrt(1.0/2.0) : 1.0;
+    c[i] = (i == 0) ? sqrt(1.0 / 2.0) : 1.0;
   }
   
   if (first_run) {
     first_run = 0;
     for (int x = 0; x < BLOCK_SIZE; x++) {
       for (int i = 0; i < BLOCK_SIZE; i++) {
-        cos_cache[x][i] = cos((2*x + 1) * i * PI / 16.0);
+        cosCache[x][i] = cos((2 * x + 1) * i * PI / 16.0);
       }
     }
   }
@@ -108,9 +108,9 @@ double** getDctBlock(double** input) {
       sum = 0.0;
       
       for (int x = 0; x < BLOCK_SIZE; x++) {
-        double cos_i = cos_cache[x][i];
+        double cos_i = cosCache[x][i];
         for (int y = 0; y < BLOCK_SIZE; y++) {
-          sum += input[x][y] * cos_i * cos_cache[y][j];
+          sum += input[x][y] * cos_i * cosCache[y][j];
         }
       }
       
@@ -151,19 +151,19 @@ Blocks_t* getDctBlocks(Blocks_t* blocks) {
 
 double** getIdctBlock(double** input) {
   double sum;
-  static double cos_cache[BLOCK_SIZE][BLOCK_SIZE];
+  static double cosCache[BLOCK_SIZE][BLOCK_SIZE];
   static int first_run = 1;
 
   double c[BLOCK_SIZE];
   for (int i = 0; i < BLOCK_SIZE; i++) {
-    c[i] = (i == 0) ? sqrt(1.0/2.0) : 1.0;
+    c[i] = (i == 0) ? sqrt(1.0 / 2.0) : 1.0;
   }
 
   if (first_run) {
     first_run = 0;
     for (int x = 0; x < BLOCK_SIZE; x++) {
       for (int i = 0; i < BLOCK_SIZE; i++) {
-        cos_cache[x][i] = cos((2*x + 1) * i * PI / 16.0);
+        cosCache[x][i] = cos((2 * x + 1) * i * PI / 16.0);
       }
     }
   }
@@ -176,9 +176,9 @@ double** getIdctBlock(double** input) {
       
       for (int i = 0; i < BLOCK_SIZE; i++) {
         double ci = c[i];
-        double cos_xi = cos_cache[x][i];
+        double cos_xi = cosCache[x][i];
         for (int j = 0; j < BLOCK_SIZE; j++) {
-          sum += ci * c[j] * input[i][j] * cos_xi * cos_cache[y][j];
+          sum += ci * c[j] * input[i][j] * cos_xi * cosCache[y][j];
         }
       }
 
@@ -219,11 +219,10 @@ Blocks_t* getIdctBlocks(Blocks_t* blocks) {
 
 int** getQuantizedBlock(double** input, int quantizationTable[8][8]) {
   int** output = createIntBlock();
-  int compressionFactor = 1;
 
   for (int i = 0; i < BLOCK_SIZE; i++) {
     for (int j = 0; j < BLOCK_SIZE; j++) {
-      output[i][j] = round(input[i][j] / (compressionFactor * quantizationTable[i][j]));
+      output[i][j] = round(input[i][j] / quantizationTable[i][j]);
     }
   }
 
@@ -260,7 +259,6 @@ IntBlocks_t* getQuantizedBlocks(Blocks_t* blocks, int quantizationTable[8][8]) {
 
 double** getDequantizedBlock(int** input, int quantizationTable[8][8]) {
   double** output = createBlock();
-  int compressionFactor = 1;
 
   for (int i = 0; i < BLOCK_SIZE; i++) {
     for (int j = 0; j < BLOCK_SIZE; j++) {
@@ -309,27 +307,6 @@ int indexes[64] = {
   58, 59, 52, 45, 38, 31, 39, 46,
   53, 60, 61, 54, 47, 55, 62, 63
 };
-
-int* getZigZagArray(int** block) {
-  int* arr = (int*) malloc(64 * sizeof(int));
-
-  for (int i = 0; i < 64; i++) {
-    int row = indexes[i] / 8;
-    int col = indexes[i] % 8;
-    arr[i] = block[row][col];
-  }
-
-  return arr;
-}
-
-void destroyZigZagArray(int* arr) {
-  if (arr == NULL) {
-    printf("Invalid array (null) on destroyZigZagArray.");
-    return;
-  }
-
-  free(arr);
-}
 
 void destroyBlock(double** block) {
   if (block == NULL) {

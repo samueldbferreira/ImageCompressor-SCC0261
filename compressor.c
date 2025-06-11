@@ -90,6 +90,10 @@ int main() {
     destroyList(itemsFrequencies);
 
     destroyTable(frequencesTable);
+
+    free(differences);
+
+    free(Image);
   }
 
   if (compressionType == 2) {
@@ -159,13 +163,12 @@ int main() {
       HashTable_t* frequencesTable = createTable();
 
       for (int i = 0; i < blocksQuant->totalBlocks; i++) {
-        int* zigzag = getZigZagArray(blocksQuant->data[i]);
-
-        for (int j = 0; j < BLOCK_SIZE * BLOCK_SIZE; j++) {
-          tableInsert(frequencesTable, zigzag[j]);
+        for (int j = 0; j < BLOCK_SIZE; j++) {
+          for (int k = 0; k < BLOCK_SIZE; k++) {
+            int value = blocksQuant->data[i][j][k];
+            tableInsert(frequencesTable, value);
+          }
         }
-
-        destroyZigZagArray(zigzag);
       }
 
       List_t* items = getItems(frequencesTable);
@@ -223,6 +226,8 @@ int main() {
     destroyBlocks(YBlocks);
 
     destroyChannels(channels);
+
+    free(Image);
   }
 
   unsigned int originalFileSize = fileHeader.bfSize;

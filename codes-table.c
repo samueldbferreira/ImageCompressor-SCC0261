@@ -15,7 +15,6 @@ CodesTable_t *createCodesTable() {
 }
 
 int codesTableHash(int difference) {
-  // FIXME verificar offset
   int normalizedIndex = difference + 255;
 
   int index = normalizedIndex % CODES_TABLE_SIZE;

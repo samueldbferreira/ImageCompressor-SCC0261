@@ -39,10 +39,6 @@ double** getDequantizedBlock(int** input, int quantizationTable[8][8]);
 
 Blocks_t* getDequantizedBlocks(IntBlocks_t* blocks, int quantizationTable[8][8]);
 
-int* getZigZagArray(int** block);
-
-void destroyZigZagArray(int* arr);
-
 void destroyBlock(double** block);
 
 void destroyBlocks(Blocks_t* blocks);
