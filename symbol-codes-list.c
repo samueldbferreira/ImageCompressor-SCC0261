@@ -17,14 +17,14 @@ SymbolCodesList_t* createSymbolCodesList() {
   return list;
 }
 
-void symbolCodesListInsert(SymbolCodesList_t* list, int difference) {
+void symbolCodesListInsert(SymbolCodesList_t* list, int value) {
   if (list == NULL) {
     printf("Invalid list (NULL) for listInsert.\n");
     return;
   }
 
   SymbolCode_t* newNode = (SymbolCode_t*) malloc(sizeof(SymbolCode_t));
-  newNode->difference = difference;
+  newNode->value = value;
   newNode->code = NULL;
   newNode->codeSize = 0;
   newNode->next = NULL;
@@ -41,7 +41,7 @@ void symbolCodesListInsert(SymbolCodesList_t* list, int difference) {
   list->last = newNode;
 }
 
-SymbolCode_t *symbolCodesListSearch(SymbolCodesList_t *list, int difference) {
+SymbolCode_t *symbolCodesListSearch(SymbolCodesList_t *list, int value) {
   if (list == NULL) {
     printf("Invalid list (NULL) for listSearch.\n");
     return NULL;
@@ -49,7 +49,7 @@ SymbolCode_t *symbolCodesListSearch(SymbolCodesList_t *list, int difference) {
 
   SymbolCode_t* aux = list->first;
   while (aux != NULL) {
-    if (aux->difference == difference)
+    if (aux->value == value)
     {
       return aux;
     }
@@ -89,7 +89,7 @@ void printSymbolCodeItem(SymbolCode_t *item) {
     return;
   }
 
-  printf("(diff > %i; codeSize > %i; ", item->difference, item->codeSize);
+  printf("(diff > %i; codeSize > %i; ", item->value, item->codeSize);
   if (item->codeSize > 0) {
     printf("code > %s)\n", item->code);
   }
@@ -104,7 +104,7 @@ void printSymbolCodesList(SymbolCodesList_t* list) {
   int i = 1;
   SymbolCode_t* aux = list->first;
   while (aux != NULL) {
-    printf("(diff > %i; codeSize > %i; ", aux->difference, aux->codeSize);
+    printf("(diff > %i; codeSize > %i; ", aux->value, aux->codeSize);
     if (aux->codeSize > 0) {
       printf("code > %s)\n", aux->code);
     }

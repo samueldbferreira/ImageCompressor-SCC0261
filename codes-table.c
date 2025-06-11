@@ -14,42 +14,42 @@ CodesTable_t *createCodesTable() {
   return table;
 }
 
-int codesTableHash(int difference) {
-  int normalizedIndex = difference + 255;
+int codesTableHash(int value) {
+  int normalizedIndex = value + 255;
 
   int index = normalizedIndex % CODES_TABLE_SIZE;
 
   return index;
 }
 
-void tableCodesInsert(CodesTable_t *table, int difference) {
+void tableCodesInsert(CodesTable_t *table, int value) {
   if (table == NULL) {
     printf("Invalid table (null) at tableInsert.\n");
     return;
   }
 
-  if (difference < -255 || difference > 255) {
-    printf("Invalid difference at tableInsert.\n");
+  if (value < -255 || value > 255) {
+    printf("Invalid value at tableInsert.\n");
     return;
   }
 
-  int index = codesTableHash(difference);
+  int index = codesTableHash(value);
 
   SymbolCodesList_t *list = table->items[index];
 
-  SymbolCode_t *item = symbolCodesListSearch(list, difference);
+  SymbolCode_t *item = symbolCodesListSearch(list, value);
 
   if (item == NULL) {
-    symbolCodesListInsert(list, difference);
+    symbolCodesListInsert(list, value);
   }
 }
 
-SymbolCode_t *tableCodesSearch(CodesTable_t *table, int difference) {
-  int index = codesTableHash(difference);
+SymbolCode_t *tableCodesSearch(CodesTable_t *table, int value) {
+  int index = codesTableHash(value);
 
   SymbolCodesList_t *list = table->items[index];
 
-  return symbolCodesListSearch(list, difference);
+  return symbolCodesListSearch(list, value);
 }
 
 SymbolCodesList_t *getCodesTableItems(CodesTable_t *table) {

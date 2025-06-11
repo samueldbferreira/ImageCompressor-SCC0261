@@ -2,7 +2,7 @@
 #define LIST_H
 
 typedef struct ListNode {
-  int difference;
+  int value;
   int frequence;
   struct ListNode* next;
 } ListNode_t;
@@ -15,9 +15,9 @@ typedef struct List {
 
 List_t* createList();
 
-void listInsert(List_t* list, int difference);
+void listInsert(List_t* list, int value);
 
-ListNode_t *listSearch(List_t *list, int difference);
+ListNode_t *listSearch(List_t *list, int value);
 
 void incrementFrequence(ListNode_t *item);
 

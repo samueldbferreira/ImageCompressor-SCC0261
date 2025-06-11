@@ -8,7 +8,7 @@
 #define EMPTY_DIFFERENCE 999;
 
 typedef struct TreeNode {
-  int difference;
+  int value;
   int frequence;
   struct TreeNode* childLeft;
   struct TreeNode* childRight;
@@ -18,7 +18,7 @@ typedef struct Tree {
   TreeNode_t* root;
 } Tree_t;
 
-Tree_t* createTree(int difference, int frequence);
+Tree_t* createTree(int value, int frequence);
 
 Tree_t* createTreeFromList(List_t* list);
 

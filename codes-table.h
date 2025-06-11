@@ -11,9 +11,9 @@ typedef struct CodesTable {
 
 CodesTable_t *createCodesTable();
 
-void tableCodesInsert(CodesTable_t *table, int difference);
+void tableCodesInsert(CodesTable_t *table, int value);
 
-SymbolCode_t *tableCodesSearch(CodesTable_t *table, int difference);
+SymbolCode_t *tableCodesSearch(CodesTable_t *table, int value);
 
 SymbolCodesList_t *getCodesTableItems(CodesTable_t *table);
 

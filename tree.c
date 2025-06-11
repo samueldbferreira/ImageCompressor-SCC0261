@@ -7,11 +7,11 @@
 #include "min-heap.h"
 #include "codes-table.h"
 
-Tree_t* createTree(int difference, int frequence) {
+Tree_t* createTree(int value, int frequence) {
   Tree_t* tree = (Tree_t*) malloc(sizeof(Tree_t));
 
   TreeNode_t *root = (TreeNode_t*) malloc(sizeof(TreeNode_t));
-  root->difference = difference;
+  root->value = value;
   root->frequence = frequence;
   root->childLeft = NULL;
   root->childRight = NULL;
@@ -31,7 +31,7 @@ Tree_t* createTreeFromList(List_t* list) {
 
   ListNode_t *aux = list->first;
   while (aux != NULL) {
-    Tree_t *treeAux = createTree(aux->difference, aux->frequence);
+    Tree_t *treeAux = createTree(aux->value, aux->frequence);
     heapInsert(heap, treeAux);
     aux = aux->next;
   }
@@ -53,11 +53,11 @@ void printTreeUtil(TreeNode_t* root) {
     return;
   }
 
-  printf("(%d, %d) -> ", root->difference, root->frequence);
+  printf("(%d, %d) -> ", root->value, root->frequence);
   if (root->childLeft == NULL) printf("NULL, ");
-  else printf("(%d, %d), ", root->childLeft->difference, root->childLeft->frequence);
+  else printf("(%d, %d), ", root->childLeft->value, root->childLeft->frequence);
   if (root->childRight == NULL) printf("NULL\n");
-  else printf("(%d, %d)\n", root->childRight->difference, root->childRight->frequence);
+  else printf("(%d, %d)\n", root->childRight->value, root->childRight->frequence);
 
   printTreeUtil(root->childLeft);
   printTreeUtil(root->childRight);
@@ -74,7 +74,7 @@ void writeTreeToFileUtil(TreeNode_t *root, FILE *file) {
   fwrite(&isLeaf, sizeof(unsigned char), 1, file);
 
   if (isLeaf) {
-    fwrite(&root->difference, sizeof(int), 1, file);
+    fwrite(&root->value, sizeof(int), 1, file);
   }
 
   writeTreeToFileUtil(root->childLeft, file);
@@ -105,9 +105,9 @@ void generateCodesTableUtil(TreeNode_t* root, char* code, int index, CodesTable_
 
   if (root->childLeft == NULL && root->childRight == NULL) {
     code[index] = '\0';
-    SymbolCode_t *item = tableCodesSearch(table, root->difference);
+    SymbolCode_t *item = tableCodesSearch(table, root->value);
     if (item == NULL) {
-      printf("Error: SymbolCode not found for difference %d\n", root->difference);
+      printf("Error: SymbolCode not found for value %d\n", root->value);
       return;
     }
     
@@ -136,7 +136,7 @@ CodesTable_t* generateCodesTable(HashTable_t* frequencesTable, List_t* items, Tr
   
   ListNode_t *aux = items->first;
   while (aux != NULL) {
-    tableCodesInsert(codesTable, aux->difference);
+    tableCodesInsert(codesTable, aux->value);
     aux = aux->next;
   }
 
@@ -175,10 +175,10 @@ Tree_t* mergeTrees(Tree_t* a, Tree_t* b) {
     return NULL;
   }
 
-  int difference = EMPTY_DIFFERENCE;
+  int value = EMPTY_DIFFERENCE;
   int frequence = a->root->frequence + b->root->frequence;
 
-  Tree_t* newTree = createTree(difference, frequence);
+  Tree_t* newTree = createTree(value, frequence);
   newTree->root->childLeft = a->root;
   newTree->root->childRight = b->root;
 

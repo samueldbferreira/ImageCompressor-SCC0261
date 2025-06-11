@@ -17,14 +17,14 @@ List_t* createList() {
   return list;
 };
 
-void listInsert(List_t* list, int difference) {
+void listInsert(List_t* list, int value) {
   if (list == NULL) {
     printf("Invalid list (NULL) for listInsert.\n");
     return;
   }
 
   ListNode_t* newNode = (ListNode_t*) malloc(sizeof(ListNode_t));
-  newNode->difference = difference;
+  newNode->value = value;
   newNode->frequence = 1;
   newNode->next = NULL;
 
@@ -40,7 +40,7 @@ void listInsert(List_t* list, int difference) {
   list->last = newNode;
 }
 
-ListNode_t* listSearch(List_t* list, int difference) {
+ListNode_t* listSearch(List_t* list, int value) {
   if (list == NULL) {
     printf("Invalid list (NULL) for listSearch.\n");
     return NULL;
@@ -48,7 +48,7 @@ ListNode_t* listSearch(List_t* list, int difference) {
 
   ListNode_t* aux = list->first;
   while (aux != NULL) {
-    if (aux->difference == difference)
+    if (aux->value == value)
     {
       return aux;
     }
@@ -97,7 +97,7 @@ void printItem(ListNode_t* item) {
     return;
   }
 
-  printf("(diff > %i; freq > %i)\n", item->difference, item->frequence);
+  printf("(diff > %i; freq > %i)\n", item->value, item->frequence);
 }
 
 void printList(List_t* list) {
@@ -109,7 +109,7 @@ void printList(List_t* list) {
   int i = 1;
   ListNode_t* aux = list->first;
   while (aux != NULL) {
-    printf("NODE %d: (diff > %i; freq > %i)\n", i, aux->difference, aux->frequence);
+    printf("NODE %d: (diff > %i; freq > %i)\n", i, aux->value, aux->frequence);
 
     aux = aux->next;
 

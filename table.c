@@ -14,44 +14,44 @@ HashTable_t *createTable() {
   return table;
 }
 
-int hash(int difference) {
-  int normalizedIndex = difference + 255;
+int hash(int value) {
+  int normalizedIndex = value + 255;
 
   int index = normalizedIndex % TABLE_SIZE;
 
   return index;
 }
 
-void tableInsert(HashTable_t *table, int difference) {
+void tableInsert(HashTable_t *table, int value) {
   if (table == NULL) {
     printf("Invalid table (null) at tableInsert.\n");
     return;
   }
 
-  if (difference < -255 || difference > 255) {
-    printf("Invalid difference at tableInsert.\n");
+  if (value < -255 || value > 255) {
+    printf("Invalid value at tableInsert.\n");
     return;
   }
 
-  int index = hash(difference);
+  int index = hash(value);
 
   List_t *list = table->items[index];
 
-  ListNode_t *item = listSearch(list, difference);
+  ListNode_t *item = listSearch(list, value);
 
   if (item == NULL) {
-    listInsert(list, difference);
+    listInsert(list, value);
   } else {
     incrementFrequence(item);
   }
 }
 
-ListNode_t* tableSearch(HashTable_t* table, int difference) {
-  int index = hash(difference);
+ListNode_t* tableSearch(HashTable_t* table, int value) {
+  int index = hash(value);
 
   List_t *list = table->items[index];
 
-  return listSearch(list, difference);
+  return listSearch(list, value);
 }
 
 List_t* getItems(HashTable_t* table) {

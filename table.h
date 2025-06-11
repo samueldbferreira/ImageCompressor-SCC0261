@@ -11,9 +11,9 @@ typedef struct HashTable {
 
 HashTable_t *createTable();
 
-void tableInsert(HashTable_t *table, int difference);
+void tableInsert(HashTable_t *table, int value);
 
-ListNode_t *tableSearch(HashTable_t *table, int difference);
+ListNode_t *tableSearch(HashTable_t *table, int value);
 
 List_t *getItems(HashTable_t *table);
 

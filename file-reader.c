@@ -44,28 +44,28 @@ TreeNode_t* readHuffmanTree(BitReader *reader) {
   TreeNode_t *node = (TreeNode_t*)malloc(sizeof(TreeNode_t));
 
   if (bit == 1) { // É folha
-    node->difference = 0;
+    node->value = 0;
     for (int i = 0; i < 32; i++) {
       bit = readBit(reader);
       if (bit == -1) {
         free(node);
         return NULL;
       };
-      node->difference = (node->difference << 1) | bit;
+      node->value = (node->value << 1) | bit;
     }
     node->frequence = 0;
   
     node->childLeft = NULL;
     node->childRight = NULL;
   } else { // É nó interno
-    node->difference = 0;
+    node->value = 0;
     for (int i = 0; i < 32; i++) {
       bit = readBit(reader);
       if (bit == -1) {
         free(node);
         return NULL;
       };
-      node->difference = (node->difference << 1) | bit;
+      node->value = (node->value << 1) | bit;
     }
     node->frequence = 0;
   
@@ -106,11 +106,11 @@ void decompressLossless(FILE* inputFile, char* outputFilePath) {
       while (foundLeaf == 0) {
         if (currentNode->childLeft == NULL && currentNode->childRight == NULL) {
           if (j == 0) {
-            recoveredPixels[i].B = recoveredPixels[i - 1].B + currentNode->difference;
+            recoveredPixels[i].B = recoveredPixels[i - 1].B + currentNode->value;
           } else if (j == 1) {
-            recoveredPixels[i].G = recoveredPixels[i - 1].G + currentNode->difference;
+            recoveredPixels[i].G = recoveredPixels[i - 1].G + currentNode->value;
           } else {
-            recoveredPixels[i].R = recoveredPixels[i - 1].R + currentNode->difference;
+            recoveredPixels[i].R = recoveredPixels[i - 1].R + currentNode->value;
           }
           currentNode = arvoreLida->root;
           foundLeaf = 1;
@@ -187,14 +187,14 @@ TreeNode_t* readHuffmanTreeLossy(BitReader *reader) {
   TreeNode_t *node = malloc(sizeof(TreeNode_t));
   if (!node) return NULL;
 
-  node->difference = 0;
+  node->value = 0;
   for (int i = 0; i < 32; i++) {
     int b = readBit(reader);
     if (b == -1) {
       free(node);
       return NULL;
     }
-    node->difference = (node->difference << 1) | b;
+    node->value = (node->value << 1) | b;
   }
 
   node->frequence = 0;
@@ -280,7 +280,7 @@ void decompressLossy(FILE* inputFile, char* outputFilePath) {
         else currentNode = currentNode->childRight;
         
         if (currentNode->childLeft == NULL && currentNode->childRight == NULL) {
-          block[coeficientsCount / BLOCK_SIZE][coeficientsCount % BLOCK_SIZE] = currentNode->difference;
+          block[coeficientsCount / BLOCK_SIZE][coeficientsCount % BLOCK_SIZE] = currentNode->value;
           quantizedBlocks->data[i] = block;
           currentNode = treeRoot;
           coeficientsCount++;

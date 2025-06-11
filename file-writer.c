@@ -44,13 +44,13 @@ void writeHuffmanTree(BitWriter *writer, TreeNode_t *node) {
     writeBit(writer, 1); // Marca como folha
     // Escreve a diferença (32 bits)
     for (int i = 31; i >= 0; i--) {
-      writeBit(writer, (node->difference >> i) & 1);
+      writeBit(writer, (node->value >> i) & 1);
     }
   } else {
     writeBit(writer, 0); // Marca como nó interno
     // Escreve a diferença (32 bits)
     for (int i = 31; i >= 0; i--) {
-      writeBit(writer, (node->difference >> i) & 1);
+      writeBit(writer, (node->value >> i) & 1);
     }
 
     writeHuffmanTree(writer, node->childLeft);
@@ -116,11 +116,11 @@ void writeHuffmanTreeLossy(BitWriter *writer, TreeNode_t *node) {
   if (node->childLeft == NULL && node->childRight == NULL) {
     writeBit(writer, 1); // Marca como folha
     // Escreve a diferença (32 bits)
-    writeIntAsBits(writer, node->difference);
+    writeIntAsBits(writer, node->value);
   } else {
     writeBit(writer, 0); // Marca como nó interno
     // Escreve a diferença (32 bits)
-    writeIntAsBits(writer, node->difference);
+    writeIntAsBits(writer, node->value);
     writeHuffmanTreeLossy(writer, node->childLeft);
     writeHuffmanTreeLossy(writer, node->childRight);
   }

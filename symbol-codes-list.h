@@ -2,7 +2,7 @@
 #define SYMBOL_CODES_LIST_H
 
 typedef struct SymbolCode {
-  int difference;
+  int value;
   char *code;
   int codeSize;
   struct SymbolCode *next;
@@ -16,9 +16,9 @@ typedef struct SymbolCodesList {
 
 SymbolCodesList_t* createSymbolCodesList();
 
-void symbolCodesListInsert(SymbolCodesList_t* list, int difference);
+void symbolCodesListInsert(SymbolCodesList_t* list, int value);
 
-SymbolCode_t *symbolCodesListSearch(SymbolCodesList_t *list, int difference);
+SymbolCode_t *symbolCodesListSearch(SymbolCodesList_t *list, int value);
 
 int getSymbolCodesListSize(SymbolCodesList_t *list);
 
