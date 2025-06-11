@@ -79,19 +79,14 @@ TreeNode_t* readHuffmanTree(BitReader *reader) {
   return node;
 }
 
-void readBinary(char* filePath) {
-  FILE* file = fopen(filePath, "rb");
-  if (!file) {
-    printf("Error opening binary file.\n");
-  }
-
+void decompressLossless(FILE* inputFile, char* outputFilePath) {
   int readedHeight;
-  fread(&readedHeight, sizeof(int), 1, file);
+  fread(&readedHeight, sizeof(int), 1, inputFile);
   int readedWidth;
-  fread(&readedWidth, sizeof(int), 1, file);
+  fread(&readedWidth, sizeof(int), 1, inputFile);
 
   BitReader reader;
-  initBitReader(&reader, file);
+  initBitReader(&reader, inputFile);
   TreeNode_t *readedTreeRoot = readHuffmanTree(&reader);
 
   Tree_t *arvoreLida = (Tree_t*)malloc(sizeof(Tree_t));
@@ -138,8 +133,6 @@ void readBinary(char* filePath) {
     }
   }
 
-  fclose(file);
-
   BMPFILEHEADER fileHeader = {
     .bfType = 0x4D42,       // 'BM'
     .bfSize = 54 + (readedWidth * readedHeight * 3), // Tamanho total
@@ -162,7 +155,7 @@ void readBinary(char* filePath) {
     .biClrImportant = 0
   };
 
-  FILE* outputBmpFile = fopen("./output.bmp", "wb");
+  FILE* outputBmpFile = fopen(outputFilePath, "wb");
   if (!outputBmpFile) {
     printf("Error opening output file.\n");
     return;
@@ -239,23 +232,15 @@ int CBCRQUANTIZATION[8][8] = {
   {99, 99, 99, 99, 99, 99, 99, 99}
 };
 
-void readLossyBinary(char* filePath) {
-  FILE* file = fopen(filePath, "rb");
-  if (!file) {
-    printf("Error opening binary file.\n");
-    return;
-  }
-
-  int compressionType;
-  fread(&compressionType, sizeof(int), 1, file);
+void decompressLossy(FILE* inputFile, char* outputFilePath) {
   int width;
-  fread(&width, sizeof(int), 1, file);
+  fread(&width, sizeof(int), 1, inputFile);
   int height;
-  fread(&height, sizeof(int), 1, file);
+  fread(&height, sizeof(int), 1, inputFile);
   int originalWidth;
-  fread(&originalWidth, sizeof(int), 1, file);
+  fread(&originalWidth, sizeof(int), 1, inputFile);
   int originalHeight;
-  fread(&originalHeight, sizeof(int), 1, file);
+  fread(&originalHeight, sizeof(int), 1, inputFile);
 
   int horizontalBlocks = ceilDiv(width, BLOCK_SIZE);
   int verticalBlocks = ceilDiv(height, BLOCK_SIZE);
@@ -270,7 +255,7 @@ void readLossyBinary(char* filePath) {
   Tree_t *CrTree;
 
   BitReader reader;
-  initBitReader(&reader, file);
+  initBitReader(&reader, inputFile);
 
   for (int channelIndex = 0; channelIndex < 3; channelIndex++) {
     IntBlocks_t* quantizedBlocks = createIntBlocks(totalBlocks);
@@ -349,9 +334,9 @@ void readLossyBinary(char* filePath) {
     .biClrImportant = 0
   };
 
-  FILE* outputBmpFile = fopen("./output-lossy.bmp", "wb");
+  FILE* outputBmpFile = fopen(outputFilePath, "wb");
   if (!outputBmpFile) {
-    printf("Error opening output file.\n");
+    printf("Error opening output image.\n");
     return;
   }
 
@@ -413,6 +398,4 @@ void readLossyBinary(char* filePath) {
   destroyTree(YTree);
   destroyTree(CbTree);
   destroyTree(CrTree);
-
-  fclose(file);
 }

@@ -17,10 +17,10 @@ void initBitReader(BitReader *reader, FILE *file);
 
 TreeNode_t *readHuffmanTree(BitReader *reader);
 
-void readBinary(char* filePath);
+void decompressLossless(FILE* inputFile, char* outputFilePath);
 
 TreeNode_t* readHuffmanTreeLossy(BitReader *reader);
 
-void readLossyBinary(char* filePath);
+void decompressLossy(FILE* inputFile, char* outputFilePath);
 
 #endif

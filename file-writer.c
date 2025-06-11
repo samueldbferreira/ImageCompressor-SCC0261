@@ -71,6 +71,8 @@ void writeBinaryFile(int width, int height, Tree_t *tree, Pixel *differences, Co
     return;
   }
 
+  int compressionType = 0;
+  fwrite(&compressionType, sizeof(int), 1, file);
   fwrite(&height, sizeof(int), 1, file);
   fwrite(&width, sizeof(int), 1, file);
 

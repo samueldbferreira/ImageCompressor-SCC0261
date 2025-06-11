@@ -90,8 +90,6 @@ int main() {
     destroyList(itemsFrequencies);
 
     destroyTable(frequencesTable);
-
-    readBinary(outputFilePath);
   }
 
   if (compressionType == 2) {
@@ -211,8 +209,6 @@ int main() {
       CrBlocksQuant,
       outputFilePath
     );
-
-    readLossyBinary(outputFilePath);
 
     destroyIntBlocks(CrBlocksQuant);
     destroyIntBlocks(CbBlocksQuant);

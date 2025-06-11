@@ -1,10 +1,16 @@
-all: programa
+all: compressor decompressor
 
-programa: compressor.c image.c image.h channels.c channels.h block.c block.h list.c list.h table.c table.h tree.c tree.h min-heap.c min-heap.h codes-table.c codes-table.h symbol-codes-list.c symbol-codes-list.h file-writer.c file-writer.h file-reader.c file-reader.h
-	gcc compressor.c image.c channels.c block.c list.c table.c tree.c min-heap.c codes-table.c symbol-codes-list.c file-writer.c file-reader.c -o programa -lm
+compressor: compressor.c image.c channels.c block.c list.c table.c tree.c min-heap.c codes-table.c symbol-codes-list.c file-writer.c file-reader.c
+	$(CC) $(CFLAGS) compressor.c image.c channels.c block.c list.c table.c tree.c min-heap.c codes-table.c symbol-codes-list.c file-writer.c file-reader.c -o compressor -lm
 
-run: programa
-	./programa
+decompressor: decompressor.c image.c channels.c block.c list.c table.c tree.c min-heap.c codes-table.c symbol-codes-list.c file-writer.c file-reader.c
+	$(CC) $(CFLAGS) decompressor.c image.c channels.c block.c list.c table.c tree.c min-heap.c codes-table.c symbol-codes-list.c file-writer.c file-reader.c -o decompressor -lm
+
+run-compressor: compressor
+	./compressor
+
+run-decompressor: decompressor
+	./decompressor
 
 clean:
-	rm -f programa *.o
+	rm -f compressor decompressor *.o
