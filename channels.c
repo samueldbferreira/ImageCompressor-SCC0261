@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "channels.h"
 
+// Converte imagem RGB para canais Y, Cb e Cr
 Channels_t* createChannels(Pixel* Image, int width, int height) {
   Channels_t* channels = (Channels_t*) malloc(sizeof(Channels_t));
   if (channels == NULL) {
@@ -18,6 +19,7 @@ Channels_t* createChannels(Pixel* Image, int width, int height) {
     return NULL;
   }
 
+  // Conversão RGB → YCbCr (com offset +128 nos canais Cb e Cr)
   for (int i = 0; i < (width * height); i++) {  
     Y[i]  = (int)( 0.299000 * Image[i].R + 0.587000 * Image[i].G + 0.114000 * Image[i].B);
     Cb[i] = (int)(-0.168736 * Image[i].R - 0.331264 * Image[i].G + 0.500000 * Image[i].B + 128);
@@ -31,6 +33,7 @@ Channels_t* createChannels(Pixel* Image, int width, int height) {
   return channels;
 }
 
+// Retorna ponteiro para o canal Y
 int* getY(Channels_t* channels) {
   if (channels == NULL) {
     printf("Invalid channels (NULL) for getY.\n");
@@ -39,6 +42,7 @@ int* getY(Channels_t* channels) {
   return channels->Y;
 }
 
+// Retorna ponteiro para o canal Cb
 int* getCb(Channels_t* channels) {
   if (channels == NULL) {
     printf("Invalid channels (NULL) for getCb.\n");
@@ -47,6 +51,7 @@ int* getCb(Channels_t* channels) {
   return channels->Cb;
 }
 
+// Retorna ponteiro para o canal Cr
 int* getCr(Channels_t* channels) {
   if (channels == NULL) {
     printf("Invalid channels (NULL) for getCr.\n");
@@ -55,6 +60,7 @@ int* getCr(Channels_t* channels) {
   return channels->Cr;
 }
 
+// Libera memória alocada para os canais Y, Cb e Cr
 void destroyChannels(Channels_t* channels) {
   if (channels == NULL) {
     printf("Invalid channels (NULL) for destroyChannels.\n");

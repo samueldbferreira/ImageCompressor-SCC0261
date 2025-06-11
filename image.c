@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include "image.h"
@@ -28,11 +27,11 @@ void leituraInfoHeader(FILE *F, BMPINFOHEADER *H) {
 
 void printFileHeader(BMPFILEHEADER *header) {
   printf("File Header:\n");
-  printf("bfType: 0x%X\n", header->bfType);  // Deve ser 'BM' (0x4D42 em little-endian)
+  printf("bfType: 0x%X\n", header->bfType);
   printf("bfSize: %u bytes\n", header->bfSize);
-  printf("bfReserved1: %u\n", header->bfReserved1);  // Deve ser 0
-  printf("bfReserved2: %u\n", header->bfReserved2);  // Deve ser 0
-  printf("bfOffBits: %u bytes\n", header->bfOffBits);  // Offset para os dados de pixel
+  printf("bfReserved1: %u\n", header->bfReserved1);
+  printf("bfReserved2: %u\n", header->bfReserved2);
+  printf("bfOffBits: %u bytes\n", header->bfOffBits);
 }
 
 void printInfoHeader(BMPINFOHEADER *header) {
@@ -50,10 +49,12 @@ void printInfoHeader(BMPINFOHEADER *header) {
   printf("biClrImportant: %u\n", header->biClrImportant);
 }
 
+// Carrega a imagem BMP e aplica padding se necessário (compressão com perdas)
 void loadBMPImage(FILE *input, BMPINFOHEADER InfoHeader, Pixel *Image, int compressionType) {
-  fseek(input, 54, SEEK_SET);
+  fseek(input, 54, SEEK_SET); // Pula cabeçalhos BMP
 
   if (compressionType == 1) {
+    // Compressão sem perdas: lê imagem como está, sem padding
     int tam = InfoHeader.biHeight * InfoHeader.biWidth;
 
     for (int i = 0; i < tam; i++){
@@ -62,26 +63,30 @@ void loadBMPImage(FILE *input, BMPINFOHEADER InfoHeader, Pixel *Image, int compr
       Image[i].R = fgetc(input);
     }
   } else {
+    // Compressão com perdas: garante múltiplos de 8 (necessário para DCT 8x8)
     int newWidth = ceilDiv(InfoHeader.biWidth, BLOCK_SIZE) * BLOCK_SIZE;
     int newHeight = ceilDiv(InfoHeader.biHeight, BLOCK_SIZE) * BLOCK_SIZE;
 
     int originalRowSize = InfoHeader.biWidth * 3;
-    int paddedRowSize = ((originalRowSize + 3) / 4) * 4;
+    int paddedRowSize = ((originalRowSize + 3) / 4) * 4; // Alinha para múltiplo de 4 bytes
     int paddingSize = paddedRowSize - originalRowSize;
 
     for (int i = 0; i < newWidth * newHeight; i++) {
       int x = i % newWidth;
       int y = i / newWidth;
 
+      // Se ainda estamos dentro da imagem original, lemos os valores reais
       if (x < InfoHeader.biWidth && y < InfoHeader.biHeight) {
         Image[i].B = fgetc(input);
         Image[i].G = fgetc(input);
         Image[i].R = fgetc(input);
 
+        // Pula o padding do fim da linha, apenas na última coluna original
         if (x == InfoHeader.biWidth - 1) {
           fseek(input, paddingSize, SEEK_CUR);
         }
       } else {
+        // Pixels adicionados por padding (fora da imagem original): preenche com preto (0,0,0)
         Image[i].B = 0;
         Image[i].G = 0;
         Image[i].R = 0;

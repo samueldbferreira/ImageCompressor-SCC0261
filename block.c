@@ -5,6 +5,7 @@
 
 #define PI 3.14159265358979323846
 
+// Cria e aloca dinamicamente um bloco 8x8 de doubles
 double** createBlock() {
   double** block = (double**) malloc(BLOCK_SIZE * sizeof(double*));
   for (int i = 0; i < BLOCK_SIZE; i++) {
@@ -14,6 +15,7 @@ double** createBlock() {
   return block;
 }
 
+// Cria e aloca dinamicamente um bloco 8x8 de inteiros
 int** createIntBlock() {
   int** block = (int**) malloc(BLOCK_SIZE * sizeof(int*));
   for (int i = 0; i < BLOCK_SIZE; i++) {
@@ -23,10 +25,12 @@ int** createIntBlock() {
   return block;
 }
 
+// Divisão com arredondamento para cima
 int ceilDiv(int a, int b) {
   return (a + b - 1) / b;
 }
 
+// Divide um canal de pixels em blocos 8x8 armazenados como matrizes de double
 Blocks_t* createBlocks(int* channel, int width, int height) {
   Blocks_t* blocks = (Blocks_t*) malloc(sizeof(Blocks_t));
   if (blocks == NULL) {
@@ -44,10 +48,12 @@ Blocks_t* createBlocks(int* channel, int width, int height) {
     return NULL;
   }
 
+  // Aloca os blocos
   for (int i = 0; i < totalBlocks; i++) {
     blocks->data[i] = createBlock();
   }
 
+  // Copia os valores do canal para os blocos 8x8 correspondentes
   for (int i = 0; i <= height - BLOCK_SIZE; i += BLOCK_SIZE) {
     for (int j = 0; j <= width - BLOCK_SIZE; j += BLOCK_SIZE) {
       int blockIndex = (i / BLOCK_SIZE) * blocksPerRow + (j / BLOCK_SIZE);
@@ -66,6 +72,7 @@ Blocks_t* createBlocks(int* channel, int width, int height) {
   return blocks;
 }
 
+// Cria estrutura para blocos inteiros a partir de um total conhecido
 IntBlocks_t* createIntBlocks(int totalBlocks) {
   IntBlocks_t* blocks = (IntBlocks_t*) malloc(sizeof(IntBlocks_t));
   if (blocks == NULL) {
@@ -82,16 +89,19 @@ IntBlocks_t* createIntBlocks(int totalBlocks) {
   return blocks;
 }
 
+// Aplica DCT em um único bloco 8x8
 double** getDctBlock(double** input) {
   double sum;
   static double cosCache[BLOCK_SIZE][BLOCK_SIZE];
   static int first_run = 1;
 
+  // Constantes de normalização
   double c[BLOCK_SIZE];
   for (int i = 0; i < BLOCK_SIZE; i++) {
     c[i] = (i == 0) ? sqrt(1.0 / 2.0) : 1.0;
   }
   
+  // Cache de cossenos para acelerar a computação
   if (first_run) {
     first_run = 0;
     for (int x = 0; x < BLOCK_SIZE; x++) {
@@ -103,6 +113,7 @@ double** getDctBlock(double** input) {
   
   double** output = createBlock();
 
+  // Cálculo da DCT 2D
   for (int i = 0; i < BLOCK_SIZE; i++) {
     for (int j = 0; j < BLOCK_SIZE; j++) {
       sum = 0.0;
@@ -121,6 +132,7 @@ double** getDctBlock(double** input) {
   return output;
 }
 
+// Aplica DCT em todos os blocos de uma imagem
 Blocks_t* getDctBlocks(Blocks_t* blocks) {
   if (blocks == NULL) {
     printf("Invalid blocks (null) on getDctBlocks.");
@@ -149,6 +161,7 @@ Blocks_t* getDctBlocks(Blocks_t* blocks) {
   return dctBlocks;
 }
 
+// Aplica IDCT em um único bloco 8x8
 double** getIdctBlock(double** input) {
   double sum;
   static double cosCache[BLOCK_SIZE][BLOCK_SIZE];
@@ -170,6 +183,7 @@ double** getIdctBlock(double** input) {
 
   double** output = createBlock();
 
+  // Cálculo da IDCT 2D
   for (int x = 0; x < BLOCK_SIZE; x++) {
     for (int y = 0; y < BLOCK_SIZE; y++) {
       sum = 0.0;
@@ -189,6 +203,7 @@ double** getIdctBlock(double** input) {
   return output;
 }
 
+// Aplica IDCT em todos os blocos da imagem
 Blocks_t* getIdctBlocks(Blocks_t* blocks) {
   if (blocks == NULL) {
     printf("Invalid blocks (null) on getIdctBlocks.");
@@ -217,6 +232,7 @@ Blocks_t* getIdctBlocks(Blocks_t* blocks) {
   return idctBlocks;
 }
 
+// Quantiza um bloco aplicando a matriz de quantização
 int** getQuantizedBlock(double** input, int quantizationTable[8][8]) {
   int** output = createIntBlock();
 
@@ -229,6 +245,7 @@ int** getQuantizedBlock(double** input, int quantizationTable[8][8]) {
   return output;
 }
 
+// Quantiza todos os blocos de uma imagem
 IntBlocks_t* getQuantizedBlocks(Blocks_t* blocks, int quantizationTable[8][8]) {
   if (blocks == NULL) {
     printf("Invalid blocks (null) on getQuantizedBlocks.");
@@ -257,6 +274,7 @@ IntBlocks_t* getQuantizedBlocks(Blocks_t* blocks, int quantizationTable[8][8]) {
   return quantizedBlocks;
 }
 
+// Desfaz a quantização multiplicando pela tabela
 double** getDequantizedBlock(int** input, int quantizationTable[8][8]) {
   double** output = createBlock();
 
@@ -269,6 +287,7 @@ double** getDequantizedBlock(int** input, int quantizationTable[8][8]) {
   return output;
 }
 
+// Aplica desquantização em todos os blocos
 Blocks_t* getDequantizedBlocks(IntBlocks_t* blocks, int quantizationTable[8][8]) {
   if (blocks == NULL) {
     printf("Invalid blocks (null) on getDequantizedBlocks.");
@@ -297,17 +316,19 @@ Blocks_t* getDequantizedBlocks(IntBlocks_t* blocks, int quantizationTable[8][8])
   return dequantizedBlocks;
 }
 
+// Ordem ZigZag para leitura de blocos
 int indexes[64] = {
-    0,  1,  8, 16,  9,  2,  3, 10,
-  17, 24, 32, 25, 18, 11,  4,  5,
+  0, 1, 8, 16, 9, 2, 3, 10,
+  17, 24, 32, 25, 18, 11, 4, 5,
   12, 19, 26, 33, 40, 48, 41, 34,
-  27, 20, 13,  6,  7, 14, 21, 28,
+  27, 20, 13, 6, 7, 14, 21, 28,
   35, 42, 49, 56, 57, 50, 43, 36,
   29, 22, 15, 23, 30, 37, 44, 51,
   58, 59, 52, 45, 38, 31, 39, 46,
   53, 60, 61, 54, 47, 55, 62, 63
 };
 
+// Libera memória de um bloco 8x8 de double
 void destroyBlock(double** block) {
   if (block == NULL) {
     printf("Invalid block (null) on destroyBlock.");
@@ -320,6 +341,7 @@ void destroyBlock(double** block) {
   free(block);
 }
 
+// Libera todos os blocos (tipo double)
 void destroyBlocks(Blocks_t* blocks) {
   if (blocks == NULL) {
     printf("Invalid blocks (null) for destroyBlocks.");
@@ -333,6 +355,7 @@ void destroyBlocks(Blocks_t* blocks) {
   free(blocks);
 }
 
+// Libera memória de um bloco 8x8 de inteiros
 void destroyIntBlock(int** block) {
   if (block == NULL) {
     printf("Invalid int block (null) on destroyIntBlock.");
@@ -345,6 +368,7 @@ void destroyIntBlock(int** block) {
   free(block);
 }
 
+// Libera todos os blocos inteiros
 void destroyIntBlocks(IntBlocks_t* blocks) {
   if (blocks == NULL) {
     printf("Invalid blocks (null) for destroyIntBlocks.");

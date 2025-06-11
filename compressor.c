@@ -1,3 +1,11 @@
+/*
+  NOME: Samuel de Assunção Ferreira
+  Nº USP: 12543565
+  DISCIPLINA: SSC226 - Multimídia
+  PROFESSOR: Rudinei Goularte
+  PROJETO: Compressão de Imagens
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
