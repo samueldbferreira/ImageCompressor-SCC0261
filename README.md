@@ -5,7 +5,7 @@
 **Disciplina:** SSC226 - Multimídia  
 **Professor:** Rudinei Goularte  
 **Ano:** 2025
-
+**Repositório** https://github.com/samueldbferreira/ImageCompressor-SCC0261
 ---
 
 ## 📌 Descrição

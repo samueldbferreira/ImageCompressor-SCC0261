@@ -4,6 +4,7 @@
   DISCIPLINA: SSC226 - Multimídia
   PROFESSOR: Rudinei Goularte
   PROJETO: Compressão de Imagens
+  REPOSITÓRIO: https://github.com/samueldbferreira/ImageCompressor-SCC0261
 */
 
 #include <stdio.h>
