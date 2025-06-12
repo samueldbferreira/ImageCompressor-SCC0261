@@ -9,6 +9,23 @@
 #include <stdio.h>
 #include "file-reader.h"
 
+/*
+  Função principal do descompressor de imagens.
+
+  - Lê arquivo binário gerado pela compressão
+  - Identifica o tipo de compressão utilizada:
+    - Modo 0 → Sem perdas: diferenças + Huffman
+    - Modo 1 → Com perdas: YCbCr, DCT, quantização, Huffman
+
+  Etapas principais:
+  1. Leitura do cabeçalho e árvore de Huffman;
+  2. Decodificação dos dados comprimidos;
+  3. Reconstrução dos blocos e conversão para RGB (modo 1);
+  4. Escrita da imagem BMP final.
+
+  Ao final, a imagem descomprimida é salva no caminho indicado.
+*/
+
 int main() {
   printf("\nEnter the binary file path: ");
   char inputFilePath[256];

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "list.h"
 
+// Cria uma lista encadeada vazia
 List_t* createList() {
   List_t* list = (List_t*) malloc(sizeof(List_t));
 
@@ -15,8 +16,9 @@ List_t* createList() {
   list->last = NULL;
 
   return list;
-};
+}
 
+// Insere novo nó com valor e frequência = 1 ao final da lista
 void listInsert(List_t* list, int value) {
   if (list == NULL) {
     printf("Invalid list (NULL) for listInsert.\n");
@@ -40,6 +42,7 @@ void listInsert(List_t* list, int value) {
   list->last = newNode;
 }
 
+// Busca um nó com valor específico dentro da lista
 ListNode_t* listSearch(List_t* list, int value) {
   if (list == NULL) {
     printf("Invalid list (NULL) for listSearch.\n");
@@ -48,8 +51,7 @@ ListNode_t* listSearch(List_t* list, int value) {
 
   ListNode_t* aux = list->first;
   while (aux != NULL) {
-    if (aux->value == value)
-    {
+    if (aux->value == value) {
       return aux;
     }
     aux = aux->next;
@@ -58,6 +60,7 @@ ListNode_t* listSearch(List_t* list, int value) {
   return NULL;
 }
 
+// Incrementa a frequência de um nó (já existente)
 void incrementFrequence(ListNode_t* item) {
   if (item == NULL) {
     printf("Invalid item (null) at incrementFrequence.\n");
@@ -67,10 +70,12 @@ void incrementFrequence(ListNode_t* item) {
   item->frequence++;
 }
 
+// Retorna o tamanho da lista
 int getListSize(List_t* list) {
   return list->size;
 }
 
+// Junta a lista 'b' no final da lista 'a'
 void concatenateLists(List_t* a, List_t* b) {
   if (a == NULL || b == NULL) {
     printf("Invalid lists (NULL) for concatenateLists.");
@@ -87,10 +92,12 @@ void concatenateLists(List_t* a, List_t* b) {
     a->size += b->size;
   }
 
+  // Esvazia b (usado para juntar buckets da tabela hash)
   b->first = NULL;
   b->last = NULL;
 }
 
+// Imprime um único item (valor e frequência)
 void printItem(ListNode_t* item) {
   if (item == NULL) {
     printf("Invalid item (null) at printItem.\n");
@@ -100,6 +107,7 @@ void printItem(ListNode_t* item) {
   printf("(diff > %i; freq > %i)\n", item->value, item->frequence);
 }
 
+// Imprime toda a lista com índice dos nós
 void printList(List_t* list) {
   if (list == NULL) {
     printf("Invalid list (NULL) for printList.\n");
@@ -110,14 +118,13 @@ void printList(List_t* list) {
   ListNode_t* aux = list->first;
   while (aux != NULL) {
     printf("NODE %d: (diff > %i; freq > %i)\n", i, aux->value, aux->frequence);
-
     aux = aux->next;
-
     i++;
   }
   printf("\n");
 }
 
+// Libera toda a memória da lista
 void destroyList(List_t* list) {
   if (list == NULL) {
     printf("Invalid list (NULL) for destroyList.\n");

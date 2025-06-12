@@ -3,6 +3,7 @@
 #include "list.h"
 #include "table.h"
 
+// Cria uma tabela hash de listas encadeadas (para frequências de valores)
 HashTable_t *createTable() {
   HashTable_t *table = (HashTable_t *) malloc(sizeof(HashTable_t));
 
@@ -14,14 +15,14 @@ HashTable_t *createTable() {
   return table;
 }
 
+// Função de hash: normaliza valor no intervalo [0,510] e mapeia para índice
 int hash(int value) {
   int normalizedIndex = value + 255;
-
   int index = normalizedIndex % TABLE_SIZE;
-
   return index;
 }
 
+// Insere valor na tabela ou incrementa frequência se já existir
 void tableInsert(HashTable_t *table, int value) {
   if (table == NULL) {
     printf("Invalid table (null) at tableInsert.\n");
@@ -34,7 +35,6 @@ void tableInsert(HashTable_t *table, int value) {
   }
 
   int index = hash(value);
-
   List_t *list = table->items[index];
 
   ListNode_t *item = listSearch(list, value);
@@ -46,14 +46,14 @@ void tableInsert(HashTable_t *table, int value) {
   }
 }
 
+// Busca um valor na tabela hash (em seu bucket correspondente)
 ListNode_t* tableSearch(HashTable_t* table, int value) {
   int index = hash(value);
-
   List_t *list = table->items[index];
-
   return listSearch(list, value);
 }
 
+// Retorna uma única lista com todos os itens da tabela (concatena os buckets)
 List_t* getItems(HashTable_t* table) {
   if (table == NULL) {
     printf("Invalid table (null) at getItems.\n");
@@ -72,6 +72,7 @@ List_t* getItems(HashTable_t* table) {
   return items;
 }
 
+// Libera memória da tabela hash e todas as listas internas
 void destroyTable(HashTable_t* table) {
   if (table == NULL) {
     printf("Invalid table (null) at destroyTable.\n");
@@ -81,6 +82,7 @@ void destroyTable(HashTable_t* table) {
   for (int i = 0; i < TABLE_SIZE; i++) {
     destroyList(table->items[i]);
   }
+
   free(table->items);
   free(table);
 }

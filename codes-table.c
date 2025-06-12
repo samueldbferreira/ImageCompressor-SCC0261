@@ -3,6 +3,7 @@
 #include "codes-table.h"
 #include "symbol-codes-list.h"
 
+// Cria uma nova tabela de códigos com listas encadeadas (hash table)
 CodesTable_t *createCodesTable() {
   CodesTable_t *table = (CodesTable_t *) malloc(sizeof(CodesTable_t));
 
@@ -14,14 +15,14 @@ CodesTable_t *createCodesTable() {
   return table;
 }
 
+// Função de hash para mapear valores no intervalo da tabela
 int codesTableHash(int value) {
   int normalizedIndex = value + 255;
-
   int index = normalizedIndex % CODES_TABLE_SIZE;
-
   return index;
 }
 
+// Insere um valor na tabela, se ainda não existir
 void tableCodesInsert(CodesTable_t *table, int value) {
   if (table == NULL) {
     printf("Invalid table (null) at tableInsert.\n");
@@ -44,14 +45,14 @@ void tableCodesInsert(CodesTable_t *table, int value) {
   }
 }
 
+// Busca um código binário correspondente ao valor fornecido
 SymbolCode_t *tableCodesSearch(CodesTable_t *table, int value) {
   int index = codesTableHash(value);
-
   SymbolCodesList_t *list = table->items[index];
-
   return symbolCodesListSearch(list, value);
 }
 
+// Retorna todos os itens da tabela em uma lista única
 SymbolCodesList_t *getCodesTableItems(CodesTable_t *table) {
   if (table == NULL) {
     printf("Invalid table (null) at getCodesTableItems.\n");
@@ -70,6 +71,7 @@ SymbolCodesList_t *getCodesTableItems(CodesTable_t *table) {
   return items;
 }
 
+// Libera memória da tabela e todas as listas internas
 void destroyCodesTable(CodesTable_t *table) {
   if (table == NULL) {
     printf("Invalid table (null) at destroyTable.\n");
@@ -79,6 +81,7 @@ void destroyCodesTable(CodesTable_t *table) {
   for (int i = 0; i < CODES_TABLE_SIZE; i++) {
     destroySymbolCodesList(table->items[i]);
   }
+
   free(table->items);
   free(table);
 }

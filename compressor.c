@@ -18,6 +18,24 @@
 #include "channels.h"
 #include "block.h"
 
+/*
+  Função principal do compressor de imagens.
+
+  - Modo 1: Compressão sem perdas (diferencial entre pixels RGB + Huffman)
+  - Modo 2: Compressão com perdas (RGB → YCbCr, DCT, quantização, Huffman)
+
+  Etapas principais:
+  1. Carregamento da imagem BMP;
+  2. Conversão para diferenças ou componentes YCbCr;
+  3. Divisão em blocos 8x8 e DCT (modo 2);
+  4. Quantização (modo 2);
+  5. Construção da árvore de Huffman;
+  6. Geração da tabela de códigos;
+  7. Escrita da imagem comprimida em formato binário.
+
+  Ao final, a razão de compressão é exibida.
+*/
+
 int main() {
   printf("Enter the compression type:\n");
   printf("1 - Lossless (Differences + Huffmann)\n");

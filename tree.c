@@ -7,6 +7,7 @@
 #include "min-heap.h"
 #include "codes-table.h"
 
+// Cria uma árvore com um único nó contendo valor e frequência
 Tree_t* createTree(int value, int frequence) {
   Tree_t* tree = (Tree_t*) malloc(sizeof(Tree_t));
 
@@ -21,6 +22,7 @@ Tree_t* createTree(int value, int frequence) {
   return tree;
 }
 
+// Constrói a árvore de Huffman a partir da lista de frequência
 Tree_t* createTreeFromList(List_t* list) {
   if (list == NULL) {
     printf("Invalid list (NULL) at createTreeFromList.\n");
@@ -29,6 +31,7 @@ Tree_t* createTreeFromList(List_t* list) {
 
   MinHeap_t* heap = createHeap();
 
+  // Insere todas as folhas na heap
   ListNode_t *aux = list->first;
   while (aux != NULL) {
     Tree_t *treeAux = createTree(aux->value, aux->frequence);
@@ -36,6 +39,7 @@ Tree_t* createTreeFromList(List_t* list) {
     aux = aux->next;
   }
 
+  // Combina os dois menores até restar uma única árvore
   while (heapSize(heap) > 1) {
     Tree_t* smallest = extractMin(heap);
     Tree_t* secondSmallest = extractMin(heap);
@@ -48,10 +52,9 @@ Tree_t* createTreeFromList(List_t* list) {
   return tree;
 }
 
+// Função auxiliar para imprimir árvore (pré-ordem)
 void printTreeUtil(TreeNode_t* root) {
-  if (root == NULL) {
-    return;
-  }
+  if (root == NULL) return;
 
   printf("(%d, %d) -> ", root->value, root->frequence);
   if (root->childLeft == NULL) printf("NULL, ");
@@ -63,6 +66,12 @@ void printTreeUtil(TreeNode_t* root) {
   printTreeUtil(root->childRight);
 }
 
+void printTree(Tree_t* tree) {
+  if (tree == NULL) return;
+  printTreeUtil(tree->root);
+}
+
+// Serializa a árvore de Huffman recursivamente no arquivo
 void writeTreeToFileUtil(TreeNode_t *root, FILE *file) {
   if (root == NULL) {
     unsigned char nullMarker = 0xFF;
@@ -90,18 +99,9 @@ void writeTreeToFile(Tree_t *root, FILE *file) {
   writeTreeToFileUtil(root->root, file);
 }
 
-void printTree(Tree_t* tree) {
-  if (tree == NULL) {
-    return;
-  }
-
-  printTreeUtil(tree->root);
-}
-
+// Gera a tabela de códigos recursivamente a partir da árvore
 void generateCodesTableUtil(TreeNode_t* root, char* code, int index, CodesTable_t* table) {
-  if (root == NULL) {
-    return;
-  }
+  if (root == NULL) return;
 
   if (root->childLeft == NULL && root->childRight == NULL) {
     code[index] = '\0';
@@ -110,15 +110,8 @@ void generateCodesTableUtil(TreeNode_t* root, char* code, int index, CodesTable_
       printf("Error: SymbolCode not found for value %d\n", root->value);
       return;
     }
-    
-    item->code = (char*)malloc(index * sizeof(char));
-    if (item->code == NULL) {
-      printf("Memory allocation failed for code.");
-      return;
-    }
-    strncpy(item->code, code, index);
 
-    item->code = strdup(code);
+    item->code = strdup(code); // Copia string do código gerado
     item->codeSize = index;
 
     return;
@@ -131,9 +124,10 @@ void generateCodesTableUtil(TreeNode_t* root, char* code, int index, CodesTable_
   generateCodesTableUtil(root->childRight, code, index + 1, table);
 }
 
+// Cria a tabela de códigos a partir da árvore de Huffman e da lista de símbolos
 CodesTable_t* generateCodesTable(HashTable_t* frequencesTable, List_t* items, Tree_t* tree) {
   CodesTable_t *codesTable = createCodesTable();
-  
+
   ListNode_t *aux = items->first;
   while (aux != NULL) {
     tableCodesInsert(codesTable, aux->value);
@@ -145,10 +139,9 @@ CodesTable_t* generateCodesTable(HashTable_t* frequencesTable, List_t* items, Tr
   return codesTable;
 }
 
+// Libera toda a memória de uma árvore de Huffman
 void destroyTreeUtil(TreeNode_t* root) {
-  if (root == NULL) {
-    return;
-  }
+  if (root == NULL) return;
 
   destroyTreeUtil(root->childLeft);
   destroyTreeUtil(root->childRight);
@@ -156,26 +149,20 @@ void destroyTreeUtil(TreeNode_t* root) {
 }
 
 void destroyTree(Tree_t* tree) {
-  if (tree == NULL) {
-    return;
-  }
+  if (tree == NULL) return;
 
   destroyTreeUtil(tree->root);
   free(tree);
 }
 
+// Mescla duas árvores em uma nova com soma das frequências
 Tree_t* mergeTrees(Tree_t* a, Tree_t* b) {
   if (a == NULL || b == NULL) {
     printf("Invalid trees (NULL) for mergeTrees.");
     return NULL;
   }
 
-  if (a->root == NULL || b->root == NULL) {
-    printf("Invalid roots (NULL) for mergeTrees.");
-    return NULL;
-  }
-
-  int value = EMPTY_DIFFERENCE;
+  int value = EMPTY_DIFFERENCE; // Valor especial para nó interno
   int frequence = a->root->frequence + b->root->frequence;
 
   Tree_t* newTree = createTree(value, frequence);
@@ -184,9 +171,6 @@ Tree_t* mergeTrees(Tree_t* a, Tree_t* b) {
 
   a->root = NULL;
   b->root = NULL;
-
-  a = NULL;
-  b = NULL;
 
   return newTree;
 }

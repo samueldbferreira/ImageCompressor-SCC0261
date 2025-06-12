@@ -6,12 +6,14 @@
 #include "image.h"
 #include "block.h"
 
+// Inicializa a estrutura do leitor de bits
 void initBitReader(BitReader *reader, FILE *file) {
   reader->file = file;
   reader->buffer = 0;
   reader->bitCount = 0;
 }
 
+// Lê 1 bit do buffer (se estiver vazio, lê 1 byte do arquivo)
 int readBit(BitReader *reader) {
   if (reader->bitCount == 0) {
     if (fread(&reader->buffer, 1, 1, reader->file) != 1) {
@@ -25,6 +27,7 @@ int readBit(BitReader *reader) {
   return bit;
 }
 
+// Reconstrói um inteiro de 32 bits lido bit a bit
 int readIntFromBits(BitReader* reader) {
   int value = 0;
   for (int i = 0; i < 32; i++) {
@@ -34,52 +37,46 @@ int readIntFromBits(BitReader* reader) {
   return value;
 }
 
+// Reconstrói a árvore de Huffman recursivamente
 TreeNode_t* readHuffmanTree(BitReader *reader) {
   int bit = readBit(reader);
-  if (bit != 1) return NULL; // Nó nulo ou erro
-  
-  bit = readBit(reader);
-  if (bit == -1) return NULL;
-  
-  TreeNode_t *node = (TreeNode_t*)malloc(sizeof(TreeNode_t));
+  if (bit == -1) return NULL; // EOF real
 
-  if (bit == 1) { // É folha
-    node->value = 0;
-    for (int i = 0; i < 32; i++) {
-      bit = readBit(reader);
-      if (bit == -1) {
-        free(node);
-        return NULL;
-      };
-      node->value = (node->value << 1) | bit;
-    }
-    node->frequence = 0;
-  
-    node->childLeft = NULL;
-    node->childRight = NULL;
-  } else { // É nó interno
-    node->value = 0;
-    for (int i = 0; i < 32; i++) {
-      bit = readBit(reader);
-      if (bit == -1) {
-        free(node);
-        return NULL;
-      };
-      node->value = (node->value << 1) | bit;
-    }
-    node->frequence = 0;
-  
-    node->childLeft = readHuffmanTree(reader);
-    node->childRight = readHuffmanTree(reader);
-    if (!node->childLeft || !node->childRight) {
-      destroyTreeUtil(node);
+  if (bit == 0) return NULL; // Nó nulo
+
+  bit = readBit(reader); // 1 = folha, 0 = interno
+  if (bit == -1) return NULL;
+
+  // Aloca um novo nó da árvore
+  TreeNode_t *node = malloc(sizeof(TreeNode_t));
+  if (!node) return NULL;
+  node->value = 0;
+  for (int i = 0; i < 32; i++) {
+    int b = readBit(reader);
+    if (b == -1) {
+      free(node);
       return NULL;
     }
+    node->value = (node->value << 1) | b;
   }
+  node->frequence = 0;
+
+  // Se for uma folha, não tem filhos
+  if (bit == 1) {
+    node->childLeft = NULL;
+    node->childRight = NULL;
+  } else {
+    // Se for um nó interno, lê os filhos recursivamente
+    node->childLeft = readHuffmanTree(reader);
+    node->childRight = readHuffmanTree(reader);
+  }
+
   return node;
 }
 
+// Realiza a descompressão da imagem sem perdas e reconstrói o BMP
 void decompressLossless(FILE* inputFile, char* outputFilePath) {
+  // Lê dimensões
   int readedHeight;
   fread(&readedHeight, sizeof(int), 1, inputFile);
   int readedWidth;
@@ -87,19 +84,22 @@ void decompressLossless(FILE* inputFile, char* outputFilePath) {
 
   BitReader reader;
   initBitReader(&reader, inputFile);
-  TreeNode_t *readedTreeRoot = readHuffmanTree(&reader);
 
+  // Lê arvore de Huffman
+  TreeNode_t *readedTreeRoot = readHuffmanTree(&reader);
   Tree_t *arvoreLida = (Tree_t*)malloc(sizeof(Tree_t));
   arvoreLida->root = readedTreeRoot;
 
+  // Aloca memória para os pixels recuperados
   Pixel* recoveredPixels = (Pixel*)malloc((readedHeight * readedWidth) * sizeof(Pixel));
 
+  // Lê primeiro pixel diretamente
   recoveredPixels[0].B = readIntFromBits(&reader);
   recoveredPixels[0].G = readIntFromBits(&reader);
   recoveredPixels[0].R = readIntFromBits(&reader);
 
+  // Decodifica diferenças dos pixels restantes com Huffman e recupera os valores RGB
   TreeNode_t* currentNode = arvoreLida->root;
-  // The first pixel is skipped as it is not compressed
   for (int i = 1; i < (readedHeight * readedWidth); i++) {
     for (int j = 0; j < 3; j++) {
       int foundLeaf = 0;
@@ -133,12 +133,13 @@ void decompressLossless(FILE* inputFile, char* outputFilePath) {
     }
   }
 
+  // Prepara o cabeçalho do BMP
   BMPFILEHEADER fileHeader = {
-    .bfType = 0x4D42,       // 'BM'
-    .bfSize = 54 + (readedWidth * readedHeight * 3), // Tamanho total
+    .bfType = 0x4D42,
+    .bfSize = 54 + (readedWidth * readedHeight * 3),
     .bfReserved1 = 0,
     .bfReserved2 = 0,
-    .bfOffBits = 54         // Offset para os pixels (14 + 40)
+    .bfOffBits = 54
   };
 
   BMPINFOHEADER infoHeader = {
@@ -146,24 +147,27 @@ void decompressLossless(FILE* inputFile, char* outputFilePath) {
     .biWidth = readedWidth,
     .biHeight = readedHeight,
     .biPlanes = 1,
-    .biBitCount = 24,       // 24 bits por pixel (RGB)
+    .biBitCount = 24,
     .biCompression = 0,
-    .biSizeImage = 0,       // Pode ser 0 para BI_RGB
+    .biSizeImage = 0,
     .biXPelsPerMeter = 0,
     .biYPelsPerMeter = 0,
     .biClrUsed = 0,
     .biClrImportant = 0
   };
 
+  // Abre o arquivo BMP de saída
   FILE* outputBmpFile = fopen(outputFilePath, "wb");
   if (!outputBmpFile) {
     printf("Error opening output file.\n");
     return;
   }
 
+  // Escreve o cabeçalho do BMP
   fwrite(&fileHeader, sizeof(BMPFILEHEADER), 1, outputBmpFile);
   fwrite(&infoHeader, sizeof(BMPINFOHEADER), 1, outputBmpFile);
 
+  // Escreve os pixels recuperados no arquivo BMP
   for (int i = 0; i < infoHeader.biWidth * infoHeader.biHeight; i++) {
     fputc((unsigned char)recoveredPixels[i].B, outputBmpFile);
     fputc((unsigned char)recoveredPixels[i].G, outputBmpFile);
@@ -175,41 +179,7 @@ void decompressLossless(FILE* inputFile, char* outputFilePath) {
   destroyTree(arvoreLida);
 }
 
-TreeNode_t* readHuffmanTreeLossy(BitReader *reader) {
-  int bit = readBit(reader);
-  if (bit == -1) return NULL; // EOF real
-
-  if (bit == 0) return NULL; // Nó nulo
-
-  bit = readBit(reader); // 1 = folha, 0 = interno
-  if (bit == -1) return NULL;
-
-  TreeNode_t *node = malloc(sizeof(TreeNode_t));
-  if (!node) return NULL;
-
-  node->value = 0;
-  for (int i = 0; i < 32; i++) {
-    int b = readBit(reader);
-    if (b == -1) {
-      free(node);
-      return NULL;
-    }
-    node->value = (node->value << 1) | b;
-  }
-
-  node->frequence = 0;
-
-  if (bit == 1) {
-    node->childLeft = NULL;
-    node->childRight = NULL;
-  } else {
-    node->childLeft = readHuffmanTreeLossy(reader);
-    node->childRight = readHuffmanTreeLossy(reader);
-  }
-
-  return node;
-}
-
+// Matrizes de quantização padrão JPEG (Y e CbCr)
 int YQUANTIZATION[8][8] = {
   {16, 11, 10, 16, 24, 40, 51, 61},
   {12, 12, 14, 19, 26, 58, 60, 55},
@@ -217,7 +187,7 @@ int YQUANTIZATION[8][8] = {
   {14, 17, 22, 29, 51, 87, 80, 62},
   {18, 22, 37, 56, 68,109,103, 77},
   {24, 35, 55, 64, 81,104,113, 92},
-  {79, 64, 78, 87,103,121,120,101},
+  {49, 64, 78, 87,103,121,120,101},
   {72, 92, 95, 98,112,100,103, 99}
 };
 
@@ -232,7 +202,9 @@ int CBCRQUANTIZATION[8][8] = {
   {99, 99, 99, 99, 99, 99, 99, 99}
 };
 
+// Descomprime imagem com perdas, reconstrói canais YCbCr e gera BMP
 void decompressLossy(FILE* inputFile, char* outputFilePath) {
+  // Lê header
   int width;
   fread(&width, sizeof(int), 1, inputFile);
   int height;
@@ -256,14 +228,17 @@ void decompressLossy(FILE* inputFile, char* outputFilePath) {
 
   BitReader reader;
   initBitReader(&reader, inputFile);
-
+  
+  // Para cada canal (Y, Cb, Cr)
   for (int channelIndex = 0; channelIndex < 3; channelIndex++) {
     IntBlocks_t* quantizedBlocks = createIntBlocks(totalBlocks);
     
+    // Lê arvore de Huffman
     Tree_t *tree = (Tree_t*)malloc(sizeof(Tree_t));
-    TreeNode_t *treeRoot = readHuffmanTreeLossy(&reader);
+    TreeNode_t *treeRoot = readHuffmanTree(&reader);
     tree->root = treeRoot;
 
+    // Lê a codificiação dos blocos e recupera os valores quantizados ao percorrer a árvore
     TreeNode_t* currentNode = treeRoot;
     for (int i = 0; i < totalBlocks; i++) {
       int** block = createIntBlock();
@@ -276,9 +251,11 @@ void decompressLossy(FILE* inputFile, char* outputFilePath) {
           break;
         }
         
+        // Bit 0 vai para o filho esquerdo, bit 1 para o direito
         if (bit == 0) currentNode = currentNode->childLeft;
         else currentNode = currentNode->childRight;
         
+        // Se for um nó folha, salva o valor quantizado, incrementa o contador e reseta para a raiz
         if (currentNode->childLeft == NULL && currentNode->childRight == NULL) {
           block[coeficientsCount / BLOCK_SIZE][coeficientsCount % BLOCK_SIZE] = currentNode->value;
           quantizedBlocks->data[i] = block;
@@ -300,10 +277,12 @@ void decompressLossy(FILE* inputFile, char* outputFilePath) {
     }
   }
 
+  // Desfaz a quantização dos blocos de cada canal
   Blocks_t* YDctBlocks = getDequantizedBlocks(YQuantizedBlocks, YQUANTIZATION);
   Blocks_t* CbDctBlocks = getDequantizedBlocks(CbQuantizedBlocks, CBCRQUANTIZATION);
   Blocks_t* CrDctBlocks = getDequantizedBlocks(CrQuantizedBlocks, CBCRQUANTIZATION);
 
+  // Desfaz o DCT, obtendo os valores originais de Y, Cb e Cr aproximados
   Blocks_t* YIdctBlocks = getIdctBlocks(YDctBlocks);
   Blocks_t* CbIdctBlocks = getIdctBlocks(CbDctBlocks);
   Blocks_t* CrIdctBlocks = getIdctBlocks(CrDctBlocks);
@@ -312,6 +291,7 @@ void decompressLossy(FILE* inputFile, char* outputFilePath) {
   int padding = rowSize - (originalWidth * 3);
   int imageSize = rowSize * originalHeight;
 
+  // Prepara o cabeçalho do BMP
   BMPFILEHEADER fileHeader = {
     .bfType = 0x4D42,
     .bfSize = 54 + imageSize,
@@ -334,18 +314,21 @@ void decompressLossy(FILE* inputFile, char* outputFilePath) {
     .biClrImportant = 0
   };
 
+  // Abre o arquivo BMP de saída
   FILE* outputBmpFile = fopen(outputFilePath, "wb");
   if (!outputBmpFile) {
     printf("Error opening output image.\n");
     return;
   }
 
+  // Escreve o cabeçalho do BMP
   fwrite(&fileHeader, sizeof(BMPFILEHEADER), 1, outputBmpFile);
   fwrite(&infoHeader, sizeof(BMPINFOHEADER), 1, outputBmpFile);
 
   // Buffer de padding
   unsigned char paddingBytes[3] = {0, 0, 0};
 
+  // Preenche a imagem com os valores RGB convertidos dos blocos YCbCr
   for (int y = originalHeight - 1; y >= 0; y--) {
     for (int x = 0; x < originalWidth; x++) {
       int blockX = x / BLOCK_SIZE;

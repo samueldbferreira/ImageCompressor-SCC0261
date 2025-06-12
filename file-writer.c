@@ -5,12 +5,14 @@
 #include "block.h"
 #include <stdint.h>
 
+// Inicializa a estrutura do gravador de bits (BitWriter)
 void initBitWriter(BitWriter *writer, FILE *file) {
   writer->file = file;
   writer->buffer = 0;
   writer->bitCount = 0;
 }
 
+// Escreve um único bit no buffer. Quando acumula 8 bits, grava 1 byte no arquivo
 void writeBit(BitWriter *writer, int bit) {
   writer->buffer = (writer->buffer << 1) | (bit & 1);
   writer->bitCount++;
@@ -22,9 +24,16 @@ void writeBit(BitWriter *writer, int bit) {
   }
 }
 
+// Escreve um inteiro como 32 bits
+void writeIntAsBits(BitWriter* writer, int value) {
+  for (int i = 0; i < 32; i++) {
+    writeBit(writer, (value >> (31 - i)) & 1);
+  }
+}
+
+// Esvazia o buffer final, preenchendo com zeros à direita
 void flushBits(BitWriter *writer) {
   if (writer->bitCount > 0) {
-    // Alinha os bits para a esquerda para não deixar 0s no fim
     uint8_t aligned = writer->buffer << (8 - writer->bitCount);
     fwrite(&aligned, 1, 1, writer->file);
     writer->buffer = 0;
@@ -32,38 +41,30 @@ void flushBits(BitWriter *writer) {
   }
 }
 
+// Escreve a árvore de Huffman binária no arquivo de forma recursiva
 void writeHuffmanTree(BitWriter *writer, TreeNode_t *node) {
   if (node == NULL) {
     writeBit(writer, 0); // Marca nó nulo
     return;
   }
   
-  writeBit(writer, 1); // Marca que existe nó
+  writeBit(writer, 1); // Marca existência do nó
   
   if (node->childLeft == NULL && node->childRight == NULL) {
-    writeBit(writer, 1); // Marca como folha
-    // Escreve a diferença (32 bits)
-    for (int i = 31; i >= 0; i--) {
-      writeBit(writer, (node->value >> i) & 1);
-    }
+    writeBit(writer, 1); // É folha
+    // Escreve valor (32 bits)
+    writeIntAsBits(writer, node->value);
   } else {
-    writeBit(writer, 0); // Marca como nó interno
-    // Escreve a diferença (32 bits)
-    for (int i = 31; i >= 0; i--) {
-      writeBit(writer, (node->value >> i) & 1);
-    }
+    writeBit(writer, 0); // Nó interno
+    // Escreve valor (32 bits)
+    writeIntAsBits(writer, node->value);
 
     writeHuffmanTree(writer, node->childLeft);
     writeHuffmanTree(writer, node->childRight);
   }
 }
 
-void writeIntAsBits(BitWriter* writer, int value) {
-  for (int i = 0; i < 32; i++) {
-    writeBit(writer, (value >> (31 - i)) & 1);
-  }
-}
-
+// Codifica e grava imagem comprimida sem perdas
 void writeBinaryFile(int width, int height, Tree_t *tree, Pixel *differences, CodesTable_t* codesTable, char* outputFilePath) { 
   FILE* file = fopen(outputFilePath, "wb");
   if (!file) {
@@ -71,19 +72,23 @@ void writeBinaryFile(int width, int height, Tree_t *tree, Pixel *differences, Co
     return;
   }
 
+  // Grava header
   int compressionType = 0;
   fwrite(&compressionType, sizeof(int), 1, file);
   fwrite(&height, sizeof(int), 1, file);
   fwrite(&width, sizeof(int), 1, file);
 
+  // Grava árvore de Huffman
   BitWriter writer;
   initBitWriter(&writer, file);
   writeHuffmanTree(&writer, tree->root);
 
+  // Grava primeiro pixel bruto (B, G, R)
   writeIntAsBits(&writer, differences[0].B);
   writeIntAsBits(&writer, differences[0].G);
   writeIntAsBits(&writer, differences[0].R);
 
+  // Grava todos os pixels subsequentes como diferenças codificadas
   for (int i = 1; i < (width * height); i++) {
     SymbolCode_t* B = tableCodesSearch(codesTable, differences[i].B);
     for (int j = 0; j < B->codeSize; j++) {
@@ -105,27 +110,7 @@ void writeBinaryFile(int width, int height, Tree_t *tree, Pixel *differences, Co
   fclose(file);
 }
 
-void writeHuffmanTreeLossy(BitWriter *writer, TreeNode_t *node) {
-  if (node == NULL) {
-    writeBit(writer, 0); // Marca nó nulo
-    return;
-  }
-  
-  writeBit(writer, 1); // Marca que existe nó
-  
-  if (node->childLeft == NULL && node->childRight == NULL) {
-    writeBit(writer, 1); // Marca como folha
-    // Escreve a diferença (32 bits)
-    writeIntAsBits(writer, node->value);
-  } else {
-    writeBit(writer, 0); // Marca como nó interno
-    // Escreve a diferença (32 bits)
-    writeIntAsBits(writer, node->value);
-    writeHuffmanTreeLossy(writer, node->childLeft);
-    writeHuffmanTreeLossy(writer, node->childRight);
-  }
-}
-
+// Grava imagem comprimida com perdas, com quantização e árvore por canal
 void writeLossyBinaryFile(
   int width,
   int height,
@@ -148,6 +133,7 @@ void writeLossyBinaryFile(
     return;
   }
 
+  // Grava header com informações da imagem original e com padding
   int compressionType = 1;
   fwrite(&compressionType, sizeof(int), 1, file);
   fwrite(&width, sizeof(int), 1, file);
@@ -158,6 +144,7 @@ void writeLossyBinaryFile(
   BitWriter writer;
   initBitWriter(&writer, file);
 
+  // Para cada canal (Y, Cb, Cr):
   for (int channelIndex = 0; channelIndex < 3; channelIndex++) {
     Tree_t* tree;
     IntBlocks_t* blocks;
@@ -177,8 +164,11 @@ void writeLossyBinaryFile(
       codesTable = CrCodesTable;
     }
 
-    writeHuffmanTreeLossy(&writer, tree->root);
+    //   Grava árvore de Huffman
+    writeHuffmanTree(&writer, tree->root);
 
+    //   Codifica e grava coeficientes quantizados dos blocos
+    //   Código binarios sao vindo da tabela de códigos
     for (int blockIndex = 0; blockIndex < blocks->totalBlocks; blockIndex++) {
       int** block = blocks->data[blockIndex];
       for (int x = 0; x < BLOCK_SIZE; x++) {
@@ -198,6 +188,7 @@ void writeLossyBinaryFile(
   fclose(file);
 }
 
+// Retorna o tamanho de um arquivo (em bytes)
 long getFileSize(const char *filename) {
   FILE *fp = fopen(filename, "rb");
   if (!fp) {
@@ -211,6 +202,7 @@ long getFileSize(const char *filename) {
   return size;
 }
 
+// Calcula a razão de compressão em porcentagem
 float getCompressionRatio(unsigned int originalFileSize, unsigned int compressedFileSize) {
   if (originalFileSize == 0) {
     return -1.0f;
